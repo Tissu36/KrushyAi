@@ -6,7 +6,7 @@ type Message = { role:"user"|"assistant"; content:string };
 const starters = ["Build me a responsive website","Explain this code and fix the bugs","Create a React component","Help me plan my next project"];
 export default function Home() {
   const [models,setModels] = useState<Model[]>([]);
-  const [model,setModel] = useState("openai/gpt-6-luna");
+  const [model,setModel] = useState("openai/gpt-6.2-sol");
   const [mode,setMode] = useState<"chat"|"code">("chat");
   const [messages,setMessages] = useState<Message[]>([]);
   const [input,setInput] = useState("");
@@ -58,7 +58,7 @@ export default function Home() {
       <div className="content">
         <div className="hero-kicker"><span/> KRUSHY AI V1 <span className="line"/></div>
         {messages.length===0?<div className="welcome"><div className="orb"><div className="orb-core">K</div><i/><i/><i/></div><h1>{mode==="code"?"LET'S BUILD.":"WHAT'S ON YOUR MIND?"}</h1><p>{mode==="code"?"Your AI coding partner. Plan, write, debug and understand code.":"One workspace. The world's leading AI models. Your next big idea starts here."}</p>
-          <div className="model-strip"><span className="model-pulse"/> SELECTED MODEL <b>{selected?.name||"GPT-6 Luna"}</b><span className="model-maker">{selected?.maker||"OpenAI"}</span></div>
+          <div className="model-strip"><span className="model-pulse"/> SELECTED MODEL <b>{selected?.name||"GPT-6.2 Sol"}</b><span className="model-maker">{selected?.maker||"OpenAI"}</span></div>
           <div className="quick-grid">{(mode==="code"?["Build a full website","Debug my code","Explain a function","Design an app UI"]:starters).map((s,i)=><button key={s} className="quick" onClick={()=>send(s)}><span>{["↗","⌘","✳","◇"][i]}</span>{s}<b>↗</b></button>)}</div>
         </div>:<div className="conversation">{messages.map((m,i)=><article className={`message ${m.role}`} key={i}><div className="message-avatar">{m.role==="user"?"YOU":"K"}</div><div className="message-body"><div className="message-head">{m.role==="user"?"YOU":"KRUSHY AI"}{m.role==="assistant"&&<button className="speak" onClick={()=>speak(m.content)}>▶ Listen</button>}</div><div className="message-text">{m.content||" "}</div></div></article>)}{busy&&messages.at(-1)?.role==="user"&&<div className="thinking"><span/> KRUSHY AI IS THINKING</div>}<div ref={bottom}/></div>}
         {error&&<div className="error"><b>!</b> {error}<button onClick={()=>setError("")}>×</button></div>}
