@@ -66,6 +66,60 @@ export async function POST(req: NextRequest) {
       ? "You are KRUSHY AI Code Studio, an expert senior software engineer and coding partner. Produce complete, runnable solutions with file paths, explain important decisions, debug carefully, review for security and performance, and state assumptions. Never claim to have edited a repository, run code, or deployed anything unless tools actually did it. When asked for a project, give a coherent implementation rather than fragments."
       : "You are KRUSHY AI, a highly capable general assistant. Be accurate, direct, thoughtful and useful. Do not invent facts or claim tools or capabilities you do not have.";
 
+    if (provider.id === "anthropic") {
+      const anthropic = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: requestedModel,
+          max_tokens: 8192,
+          system,
+          messages,
+          stream: true
+        }),
+        signal: req.signal
+      });
+      if (!anthropic.ok) {
+        const detail = await anthropic.text();
+        return Response.json({ error: `Anthropic returned ${anthropic.status}: ${detail.slice(0, 700)}` }, { status: anthropic.status });
+      }
+      if (!anthropic.body) return Response.json({ error: "Anthropic returned an empty response." }, { status: 502 });
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+      let buffer = "";
+      const stream = new ReadableStream({
+        async start(controller) {
+          const reader = anthropic.body!.getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const events = buffer.split("\\n\\n");
+              buffer = events.pop() || "";
+              for (const event of events) {
+                const dataLine = event.split("\\n").find(line => line.startsWith("data:"));
+                if (!dataLine) continue;
+                try {
+                  const payload = JSON.parse(dataLine.slice(5).trim());
+                  if (payload.type === "content_block_delta" && payload.delta?.type === "text_delta") {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: payload.delta.text } }] })}\\n\\n`));
+                  }
+                } catch {}
+              }
+            }
+            controller.enqueue(encoder.encode("data: [DONE]\\n\\n"));
+            controller.close();
+          } catch (error) {
+            controller.error(error);
+          } finally {
+            reader.releaseLock();
+          }
+        }
+      });
+      return new Response(stream, { headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" } });
+    }
+
     const upstream = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
