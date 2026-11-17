@@ -1,29 +1,35 @@
 # KRUSHY AI
 
-A mobile-first AI workspace powered by Groq-hosted open-weight GPT-OSS models, with chat, coding mode, and browser-based voice controls.
-
-## Setup
-
-1. Install Node.js 20+.
-2. Run `npm install`.
-3. Create a Groq API key at [Groq Console](https://console.groq.com/keys).
-4. Add `GROQ_API_KEY` to `.env.local`.
-5. Run `npm run dev`.
-
-Deploy to Vercel and add `GROQ_API_KEY` under Project → Settings → Environment Variables, then redeploy. Never put provider keys in client-side code.
-
-## Models
-
-- `openai/gpt-oss-120b` — recommended for stronger reasoning and coding.
-- `openai/gpt-oss-20b` — faster, lighter alternative.
+A responsive multi-provider AI workspace built with Next.js, React and TypeScript.
 
 ## Features
+- Streaming AI chat with a server-side provider router
+- Model catalogue for Groq, OpenAI, Anthropic, Google, DeepSeek, xAI, Mistral and Cerebras
+- Coding-focused Code Studio mode
+- Browser speech recognition and speech synthesis (browser/device support required)
+- Mobile-first red-and-black interface
+- Provider keys remain server-side
 
-- Groq-hosted open-weight GPT-OSS model selector.
-- General chat and coding-focused system prompts.
-- Server-side streaming chat; API key is never sent to the browser.
-- Conversation history in browser local storage.
-- Voice input/output using browser speech APIs where supported.
-- Responsive black-and-red interface.
+## Setup
+1. Install dependencies: `npm install`
+2. Copy `.env.example` to `.env.local`.
+3. Add one or more API keys from providers you are eligible to use.
+4. Run `npm run dev`.
 
-Groq free-tier access is rate-limited, not unlimited. Check current model availability, limits and pricing in Groq Console. The Code Studio is a coding-focused chat, not an autonomous repository editor or terminal.
+## Provider keys
+- Groq: https://console.groq.com/keys
+- OpenAI: https://platform.openai.com/api-keys
+- Anthropic: https://console.anthropic.com/settings/keys
+- Google AI Studio: https://aistudio.google.com/apikey
+- DeepSeek: https://platform.deepseek.com/api_keys
+- xAI: https://console.x.ai/
+- Mistral: https://console.mistral.ai/api-keys/
+- Cerebras: https://cloud.cerebras.ai/
+
+Add keys as environment variables in your hosting provider (for Vercel: Project → Settings → Environment Variables), then redeploy. Only models whose provider key is configured appear in the model selector.
+
+## Important
+- Provider access, model IDs, prices and free quotas change. A model may require paid credits even if its name appears in this catalogue. Check each provider's current terms and model availability before enabling it for users.
+- The free tier is not unlimited. Never promise unlimited free inference.
+- This repository currently provides model routing and chat, not a complete autonomous coding agent, database-backed accounts, billing, or subscription enforcement. Those require separate secure integrations and configuration.
+- Keep API keys out of client code, commits, screenshots and chat messages.
