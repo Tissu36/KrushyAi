@@ -4,25 +4,31 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type Model = { id:string; name:string; maker:string; tag:string; task:string; category?:"chat"|"code"|"both"; configured?:boolean; github?:string };
 type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; modelUsed?:string; fallbackAttempted?:boolean };
 type ImageAttachment = { dataUrl:string; name:string; size:number };
-const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
 async function prepareImage(file:File):Promise<ImageAttachment>{
   const allowed = ["image/png","image/jpeg","image/webp","image/gif"];
   if(!allowed.includes(file.type)) throw new Error("Use a PNG, JPEG, WebP, or GIF image.");
   if(file.size>20*1024*1024) throw new Error("That image is too large to process. Choose an image under 20 MB.");
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1,2048/Math.max(bitmap.width,bitmap.height));
-  const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
-  const context=canvas.getContext("2d");if(!context){bitmap.close();throw new Error("Your browser could not process this image.");}
-  context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  let scale = Math.min(1,2048/Math.max(bitmap.width,bitmap.height));
+  const canvas=document.createElement("canvas");
   let blob:Blob|null=null;
-  for(let attempt=0;attempt<7;attempt++){
-    const quality=Math.max(.48,.86-attempt*.07);
-    blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/webp",quality));
-    if(blob&&blob.size<=MAX_UPLOAD_BYTES)break;
-    if(attempt===3){canvas.width=Math.max(1,Math.round(canvas.width*.82));canvas.height=Math.max(1,Math.round(canvas.height*.82));const resizedContext=canvas.getContext("2d");if(!resizedContext){bitmap.close();throw new Error("Your browser could not resize this image.");}resizedContext.drawImage(bitmap,0,0,canvas.width,canvas.height);}
+  try {
+    for(let attempt=0;attempt<9;attempt++){
+      canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+      canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+      const context=canvas.getContext("2d");
+      if(!context) throw new Error("Your browser could not process this image.");
+      context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+      const quality=Math.max(.42,.86-attempt*.055);
+      blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/webp",quality));
+      if(blob&&blob.size<=MAX_UPLOAD_BYTES) break;
+      scale*=.82;
+    }
+  } finally {
+    bitmap.close();
   }
-  bitmap.close();
-  if(!blob||blob.size>MAX_UPLOAD_BYTES)throw new Error("Could not compress this image below 4 MB. Try a smaller image.");
+  if(!blob||blob.size>MAX_UPLOAD_BYTES) throw new Error("Could not compress this image below 3 MB. Try a smaller image.");
   const dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Could not read the image."));reader.readAsDataURL(blob!);});
   return {dataUrl,name:file.name,size:blob.size};
 }
@@ -56,7 +62,7 @@ export default function Home() {
     const imageForSend=attachment;
     const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
     try {
-      const apiMessages=next.map((m,i)=>i===next.length-1&&imageForSend?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:imageForSend.dataUrl}}]}:{role:m.role,content:m.content});
+      const apiMessages=next.map(m=>m.imageUrl?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:m.imageUrl}}]}:{role:m.role,content:m.content});
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
       if(!res.ok){const d=await res.json().catch(()=>({}));throw new Error(d.error||"Request failed");}
       if(!res.body)throw new Error("Streaming is not supported by this response.");
@@ -97,7 +103,7 @@ export default function Home() {
           <div className="quick-grid">{(mode==="code"?["Build a full website","Debug my code","Explain a function","Design an app UI"]:starters).map((s,i)=><button key={s} className="quick" onClick={()=>send(s)}><span>{["↗","⌘","✳","◇"][i]}</span>{s}<b>↗</b></button>)}</div>
         </div>:<div className="conversation">{messages.map((m,i)=><article className={`message ${m.role}`} key={i}><div className="message-avatar">{m.role==="user"?"YOU":"K"}</div><div className="message-body"><div className="message-head">{m.role==="user"?"YOU":"KRUSHY AI"}{m.role==="assistant"&&<button className="speak" onClick={()=>speak(m.content)}>▶ Listen</button>}</div><div className="message-text">{m.content||" "}</div>{m.imageUrl&&<img className="message-image" src={m.imageUrl} alt="User attachment"/>}{m.role==="assistant"&&m.modelUsed&&<div className="message-meta">{m.modelUsed}{m.fallbackAttempted&&<span>FALLBACK USED</span>}</div>}</div></article>)}{busy&&messages.at(-1)?.role==="user"&&<div className="thinking"><span/> KRUSHY AI IS THINKING</div>}<div ref={bottom}/></div>}
         {error&&<div className="error"><b>!</b> {error}<button onClick={()=>setError("")}>×</button></div>}
-        <div className="composer-wrap"><div className="composer">{attachment&&<div className="attachment-preview"><img src={attachment.dataUrl} alt="Selected upload"/><span>{attachment.name} · {(attachment.size/1024).toFixed(0)} KB</span><button type="button" onClick={()=>setAttachment(null)} aria-label="Remove image">×</button></div>}<textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder={mode==="code"?"Ask KRUSHY AI to write, debug or explain code...":"Message KRUSHY AI..."} rows={2}/><div className="composer-bottom"><div className="composer-tools"><input ref={fileInput} className="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={pickImage}/><button className="tool" type="button" onClick={()=>fileInput.current?.click()} disabled={compressing||busy} title="Attach image">▧ <span>{compressing?"Preparing":"Image"}</span></button><button className={mode==="code"?"tool selected":"tool"} onClick={()=>changeMode(mode==="code"?"chat":"code")}>⌘ <span>Code</span></button><button className={listening?"tool selected":"tool"} onClick={voiceInput}>{listening?"●":"◖"} <span>{listening?"Listening":"Voice"}</span></button><span className="hint">Enter to send · Shift + Enter for new line</span></div><button className="send" onClick={()=>send()} disabled={busy||(!input.trim()&&!attachment)}>{busy?"…":"↑"}</button></div></div><div className="composer-note">{model==="krushy-max"||model==="slot-3-multimodal"||model==="slot-7-vision"?"Images supported · PNG, JPEG, WebP, GIF · compressed to max 4 MB":"Attach an image to switch to a vision-capable model"} · KRUSHY AI can make mistakes.</div></div>
+        <div className="composer-wrap"><div className="composer">{attachment&&<div className="attachment-preview"><img src={attachment.dataUrl} alt="Selected upload"/><span>{attachment.name} · {(attachment.size/1024).toFixed(0)} KB</span><button type="button" onClick={()=>setAttachment(null)} aria-label="Remove image">×</button></div>}<textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder={mode==="code"?"Ask KRUSHY AI to write, debug or explain code...":"Message KRUSHY AI..."} rows={2}/><div className="composer-bottom"><div className="composer-tools"><input ref={fileInput} className="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={pickImage}/><button className="tool" type="button" onClick={()=>fileInput.current?.click()} disabled={compressing||busy} title="Attach image">▧ <span>{compressing?"Preparing":"Image"}</span></button><button className={mode==="code"?"tool selected":"tool"} onClick={()=>changeMode(mode==="code"?"chat":"code")}>⌘ <span>Code</span></button><button className={listening?"tool selected":"tool"} onClick={voiceInput}>{listening?"●":"◖"} <span>{listening?"Listening":"Voice"}</span></button><span className="hint">Enter to send · Shift + Enter for new line</span></div><button className="send" onClick={()=>send()} disabled={busy||(!input.trim()&&!attachment)}>{busy?"…":"↑"}</button></div></div><div className="composer-note">{model==="krushy-max"||model==="slot-3-multimodal"||model==="slot-7-vision"?"Images supported · PNG, JPEG, WebP, GIF · compressed to max 3 MB":"Attach an image to switch to a vision-capable model"} · KRUSHY AI can make mistakes.</div></div>
       </div>
     </section>
     <aside className="model-panel"><div className="panel-title">MODEL SELECTOR <span>● LIVE</span></div><p>Choose a model for {mode==="code"?"coding":"chat"}. KRUSHY MAX combines multiple specialists.</p><div className="model-list">{activeModels.map((m,i)=><button key={m.id} disabled={!m.configured} className={model===m.id?"model-option chosen":"model-option"} onClick={()=>setModel(m.id)}><div className="model-icon">{m.id==="krushy-max"?"✦":m.maker==="OpenAI"?"◎":m.maker==="Google"?"✦":m.maker==="DeepSeek"?"D":m.maker==="Qwen"?"Q":m.maker==="Meta"?"M":"✳"}</div><div className="model-info"><b>{m.name}</b><small>{m.maker} · {m.task}</small><small>{m.tag}</small></div><span className="radio">{model===m.id?"●":"○"}</span></button>)}</div><div className="panel-footer"><div className="secure">♢ <span><b>PRIVATE CONNECTION</b><small>API keys stay on the server</small></span></div><a href="https://github.com/Tissu36/KrushyAi/blob/main/training/README.md" target="_blank" rel="noreferrer">Open-source model collection ↗</a></div></aside>
