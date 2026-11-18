@@ -183,6 +183,11 @@ export const MODEL_CATALOG: ModelEntry[] = [
 ];
 
 export function getConfiguredModelMap(): Record<string, string> {
+  // OpenRouter requires an API key. Do not label mapped models as connected when
+  // the project only has a base URL and no credential configured.
+  const base = process.env.KRUSHY_MODEL_BASE_URL || "";
+  if (!base) return {};
+  if (base.includes("openrouter.ai") && !process.env.KRUSHY_MODEL_API_KEY) return {};
   try {
     const parsed = JSON.parse(process.env.KRUSHY_MODEL_MAP || "{}");
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
