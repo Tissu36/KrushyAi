@@ -7,9 +7,10 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Sign in to KRUSHYAI before subscribing." }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const paymentMethodId = typeof body.paymentMethodId === "string" ? body.paymentMethodId : "";
-  if (!paymentMethodId) {
-    return NextResponse.json({ error: "A Moneris Payment Method ID is required." }, { status: 400 });
+  const temporaryToken = typeof body.temporaryToken === "string" ? body.temporaryToken.trim() : "";
+  const paymentMethodId = typeof body.paymentMethodId === "string" ? body.paymentMethodId.trim() : "";
+  if (!temporaryToken && !paymentMethodId) {
+    return NextResponse.json({ error: "A Moneris temporary token or Payment Method ID is required." }, { status: 400 });
   }
 
   const db = getSupabaseAdminClient();
@@ -46,12 +47,24 @@ export async function POST(req: Request) {
       billingAmount: { amount: String(cents), currency: "CAD" },
     },
     callbackUrl,
-    paymentMethod: {
-      paymentMethodSource: "PAYMENT_METHOD_ID",
-      paymentMethodId,
-    },
-    customerId: user.id,
     customData: { userId: user.id, plan: "pro" },
+    ...(temporaryToken
+      ? {
+          paymentMethod: {
+            paymentMethodSource: "TEMPORARY_TOKEN",
+            temporaryToken,
+            credentialOnFileInformation: {
+              paymentInformation: "FIRST",
+              paymentIndicator: "RECURRING",
+            },
+          },
+        }
+      : {
+          paymentMethod: {
+            paymentMethodSource: "PAYMENT_METHOD_ID",
+            paymentMethodId,
+          },
+        }),
   };
 
   const response = await fetch(`${baseUrl}/subscriptions`, {
