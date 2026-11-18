@@ -8,9 +8,9 @@ type Model = { id:string; plan?:"free"|"pro"; name:string; maker:string; tag:str
 type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; imageSize?:number; modelUsed?:string; modelProfile?:string; modelProvider?:string; fallbackAttempted?:boolean };
 type ImageAttachment = { dataUrl:string; name:string; size:number };
 const LOCAL_MODELS: Model[] = [
-  {id:"local-fast",plan:"free",name:"KRUSHY FAST",maker:"On-device AI",tag:"FREE · Everyday chat & writing",task:"Quick answers, summaries and natural writing",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
-  {id:"local-code",plan:"free",name:"KRUSHY CODE",maker:"Llama 3.2 · Local",tag:"FREE · Coding & reasoning",task:"Code, debugging, logic and math",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
-  {id:"local-vision",plan:"free",name:"KRUSHY VISION",maker:"On-device AI",tag:"FREE · Research & documents (text)",task:"Long-form analysis and pasted document text",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
+  {id:"local-fast",plan:"free",name:"KRUSHY FAST",maker:"SmolLM2 · Local",tag:"FREE · Everyday chat & writing",task:"Quick answers, summaries and natural writing",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
+  {id:"local-code",plan:"free",name:"KRUSHY CODE",maker:"SmolLM2 · Local",tag:"FREE · Coding & reasoning",task:"Code, debugging, logic and math",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
+  {id:"local-vision",plan:"free",name:"KRUSHY VISION",maker:"SmolLM2 · Local",tag:"FREE · Research & documents (text)",task:"Long-form analysis and pasted document text",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
 ];
 const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
 async function prepareImage(file:File):Promise<ImageAttachment>{
