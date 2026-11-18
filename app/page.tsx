@@ -51,8 +51,8 @@ export default function Home() {
   const bottom = useRef<HTMLDivElement>(null);
   const selected = useMemo(()=>models.find(m=>m.id===model),[models,model]);
   const activeModels = useMemo(()=>models.filter(m=>m.category==="both"||m.category===mode),[models,mode]);
-  function changeMode(next:"chat"|"code"){setMode(next);const current=models.find(m=>m.id===model);if(current&&current.category!=="both"&&current.category!==next){const best=models.find(m=>m.category===next&&m.configured);setModel(best?.id||"krushy-max");}}
-  useEffect(()=>{ fetch("/api/models").then(r=>r.json()).then(d=>{const available=d.models||[];setModels(available);if(available.some((m:Model)=>m.id==="krushy-max"&&m.configured))setModel("krushy-max")}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); } catch {} },[]);
+  function changeMode(next:"chat"|"code"){setMode(next);const current=models.find(m=>m.id===model);if(current&&current.category!=="both"&&current.category!==next){const best=models.find(m=>m.category===next&&m.configured);setModel(best?.id||models.find(m=>m.plan==="free"&&m.configured)?.id||"");}}
+  useEffect(()=>{ fetch("/api/models").then(r=>r.json()).then(d=>{const available=d.models||[];setModels(available);const starter=available.find((m:Model)=>m.plan==="free"&&m.configured);if(starter)setModel(starter.id)}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); } catch {} },[]);
   useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"});},[messages,busy]);
   useEffect(()=>{if(messages.length){const h=[messages.filter(m=>m.role==="user").at(-1)?.content||"New chat",...history].slice(0,12);setHistory(h);localStorage.setItem("krushy-history",JSON.stringify(h));}},[messages.length]);
   async function send(text=input) {
