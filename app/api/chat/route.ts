@@ -138,10 +138,9 @@ function wait(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-async function requestOnce(modelId: string, messages: ChatMessage[], signal: AbortSignal, stream: boolean): Promise<Response | string> {
+async function requestOnce(modelId: string, messages: ChatMessage[], signal: AbortSignal, stream: boolean, apiKey: string): Promise<Response | string> {
   void signal;
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new UpstreamError("OPENROUTER_API_KEY is not configured. Add it to the Vercel project environment variables.", 503);
+  if (!apiKey) throw new UpstreamError("No OpenRouter connection is available for this request.", 401);
 
   const client = new OpenRouter({
     apiKey,
@@ -210,6 +209,7 @@ async function completeWithFailover(
   messages: ChatMessage[],
   signal: AbortSignal,
   stream: boolean,
+  apiKey: string,
 ): Promise<CompletionResult> {
   const candidates = [primaryModel, ...getFallbackAliases(entry, primaryModel)];
   let fallbackAttempted = false;
