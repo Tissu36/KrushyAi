@@ -33,7 +33,7 @@ KRUSHY_MODEL_API_KEY=your_gateway_key
 KRUSHY_MODEL_MAP={"slot-1-flagship":"provider/model-id","slot-2-writing":"provider/model-id"}
 ```
 
-The ten stable slot keys are `slot-1-flagship`, `slot-2-writing`, `slot-3-multimodal`, `slot-4-coding`, `slot-5-fast`, `slot-6-research`, `slot-7-vision`, `slot-8-agents`, `slot-9-math-science`, and `slot-10-backup`. Values are exact model aliases configured in the gateway. The catalog records preferred upstream IDs and suggested fallbacks for operator reference; these fallback lists are not automatic retries. The current route uses the one alias configured for each slot. Never prefix secrets with `NEXT_PUBLIC_`, commit them, or paste them into chat.
+The ten stable slot keys are `slot-1-flagship`, `slot-2-writing`, `slot-3-multimodal`, `slot-4-coding`, `slot-5-fast`, `slot-6-research`, `slot-7-vision`, `slot-8-agents`, `slot-9-math-science`, and `slot-10-backup`. Values are exact model aliases configured in the gateway. The catalog records preferred upstream IDs and fallback suggestions; the chat route derives conventional provider aliases from those suggestions and retries on eligible pre-stream failures. For custom gateway aliases, set KRUSHY_MODEL_FALLBACK_MAP. Never prefix secrets with `NEXT_PUBLIC_`, commit them, or paste them into chat.
 
 For LiteLLM, configure each alias in the proxy's model list and connect the provider credentials through its server environment. The gateway should enforce authentication, rate limits, spend limits, and provider allowlists.
 
