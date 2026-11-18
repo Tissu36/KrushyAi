@@ -23,6 +23,18 @@ Useful upstreams:
 
 Use exact provider IDs, not marketing nicknames or guessed suffixes. The current catalog records `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, `gemini-4-carbon`, and `gemini-3.8-flash` as target IDs. Availability can still depend on provider account, region, gateway support, and API product. The `.env.example` uses Gemini 3.8 Flash and Claude Opus/Sonnet targets as a conservative starting configuration. Carbon and Fable are not assumed to be available just because they appear in the catalog.
 
+## Image input for Slots 3 and 7
+
+The chat route accepts OpenAI-compatible user content arrays containing text blocks and `image_url` blocks with base64 data URLs. The browser validates PNG, JPEG, WebP, and GIF uploads, downsizes them to a maximum 2048-pixel long edge, converts them to WebP, and targets a 4 MB total image payload. GIF uploads are flattened to a still image during canvas conversion.
+
+- Image requests are accepted only for `slot-3-multimodal`, `slot-7-vision`, or `krushy-max`.
+- Selecting an image while a text-only slot is active switches to a configured vision slot when available. The Code workspace switches back to Chat for image requests.
+- KRUSHY MAX filters its specialist pool to configured Slot 3 / Slot 7 vision candidates for image analysis, then synthesizes their text responses.
+- The API validates data-URL MIME types, base64 format, and a 4 MB aggregate image limit before forwarding the content array to the OpenAI-compatible gateway.
+- Your LiteLLM model/provider must actually support image input. A text-only model alias or unsupported provider adapter cannot become vision-capable merely because the request uses the standard content format.
+
+Assistant responses expose `X-Krushy-Model-Used` and `X-Krushy-Fallback-Attempted`; the chat footer displays those values, including the synthesis model selected by KRUSHY MAX.
+
 ## Configure the gateway
 
 Set these as server-side environment variables (Vercel Project Settings or local `.env.local`):
