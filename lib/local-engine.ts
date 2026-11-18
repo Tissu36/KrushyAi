@@ -2,7 +2,7 @@ import { CreateMLCEngine, type MLCEngineInterface } from "@mlc-ai/web-llm";
 
 // Keep one small model resident on mobile to avoid swapping large GPU allocations.
 // The three KRUSHY personas are system prompts over this same local text model.
-const MOBILE_MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+const MOBILE_MODEL_ID = "SmolLM2-360M-Instruct-q4f16_1-MLC";
 const MODEL_IDS: Record<string, string> = {
   "local-fast": MOBILE_MODEL_ID,
   "local-code": MOBILE_MODEL_ID,
@@ -49,7 +49,7 @@ export async function getLocalEngine(
   }
 
   const currentGeneration = generation;
-  onProgress("Preparing the compact on-device model…");
+  onProgress("Preparing the low-memory 360M on-device model…");
   const pending = CreateMLCEngine(modelId, {
     initProgressCallback: (report) => {
       if (currentGeneration !== generation) return;
@@ -61,7 +61,7 @@ export async function getLocalEngine(
   try {
     const nextEngine = await pending;
     if (currentGeneration !== generation) {
-      throw new Error("The browser GPU session changed during model setup. Reload this page, then download the model again.");
+      throw new Error("The browser GPU session was lost while loading the model. Close other tabs, reload KRUSHY AI, and try the smaller on-device model again. If this repeats, this browser/device cannot keep WebGPU active reliably.");
     }
     engine = nextEngine;
     loadedModel = modelId;
