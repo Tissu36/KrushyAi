@@ -43,7 +43,7 @@ The JSON keys must be stable IDs from the catalogue. Values must exactly match t
 
 ## KRUSHY MAX
 
-MAX runs up to three configured specialists in parallel for the selected mode, then asks a judge model to compare the drafts, resolve disagreements and produce one final answer. It requires at least two configured chat models and two configured coding models before the selector marks MAX as ready. This is multi-model synthesis, not a new neural network and not guaranteed to outperform every individual model. It costs more compute per request.
+MAX runs all configured specialists (up to five per mode) in parallel for the selected mode, then asks a judge model to compare the drafts, resolve disagreements and produce one final answer. It requires at least two configured chat models and two configured coding models before the selector marks MAX as ready. This is multi-model synthesis, not a new neural network and not guaranteed to outperform every individual model. It costs more compute per request.
 
 ## Serving
 
