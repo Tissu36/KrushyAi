@@ -1,31 +1,54 @@
-# KRUSHY Ω training
+# KRUSHY AI model collection and MAX
 
-This folder contains a supervised fine-tuning pipeline for two separate LoRA adapters built from one open-weight foundation:
-- KRUSHY Omega: general conversation and reasoning.
-- KRUSHY Code: programming, debugging and software engineering.
+KRUSHY AI now has a model registry for five chat candidates and five coding candidates, plus KRUSHY MAX. These are model checkpoints and reference projects, not ten APIs automatically provided for free.
 
-Default base: unsloth/Qwen3.5-4B. Check the exact Hugging Face model card and license before use or redistribution. Qwen publishes open-weight model families and recommends established fine-tuning frameworks. The 4B model is a practical starting point, not a frontier model.
+## Model candidates
 
-## Train
-Use a compatible GPU runtime (for example, a supported Google Colab GPU). An ordinary phone or low-memory laptop cannot train this model.
+### Chat
+1. GPT-OSS 20B — https://github.com/openai/gpt-oss
+2. Qwen general model — https://github.com/QwenLM
+3. Gemma — https://github.com/google-deepmind/gemma
+4. Llama 4 — https://github.com/meta-llama/llama
+5. DeepSeek V3 — https://github.com/deepseek-ai/DeepSeek-V3
 
-Install: pip install -r requirements.txt
+### Coding
+1. Qwen3-Coder-Next — https://github.com/QwenLM/Qwen3-Coder
+2. Qwen3-Coder 30B A3B — https://github.com/QwenLM/Qwen3-Coder
+3. DeepSeek-Coder-V2 Lite — https://github.com/deepseek-ai/DeepSeek-Coder-V2
+4. GPT-OSS 20B — https://github.com/openai/gpt-oss
+5. Gemma 4 — https://github.com/google-deepmind/gemma
 
-Copy one of the example JSONL files to general.jsonl or code.jsonl and add high-quality examples you have permission to use.
+These are candidates, not claims that every model is small, free to host, or suitable for every GPU. DeepSeek V3 and Llama 4 are large; Meta and Google model terms/access requirements must be reviewed. Check each official repository and model card for exact checkpoint ID, license and hardware needs before deployment. Some candidates are duplicated across chat and code because they are general-purpose.
 
-Run:
-python train.py --profile general --data general.jsonl --output ./output/krushy-omega
-python train.py --profile code --data code.jsonl --output ./output/krushy-code
+## Connect models
 
-The commands train and save two distinct LoRA adapters. Evaluate them on held-out examples before deployment.
+The app uses one OpenAI-compatible model gateway (for example, a properly secured vLLM or LiteLLM deployment). Set these Vercel environment variables:
 
-## Dataset format
-One JSON object per line with a messages array containing user and assistant roles. Use original or properly licensed examples; remove personal/private information and secrets.
+- KRUSHY_MODEL_BASE_URL — private gateway URL ending in /v1
+- KRUSHY_MODEL_API_KEY — gateway key
+- KRUSHY_MODEL_MAP — JSON mapping of the stable IDs below to the exact model IDs served by your gateway
 
-## Website connection
-After training, deploy the base model plus the correct adapter to an OpenAI-compatible inference server. Then configure the website with KRUSHY_MODEL_BASE_URL (ending in /v1), KRUSHY_MODEL_API_KEY (if required), KRUSHY_GENERAL_MODEL_ID and KRUSHY_CODE_MODEL_ID in Vercel. The website must not claim the model is live until these values are set and the server is reachable.
+Example with only two models connected (add the remaining ones only when the gateway actually serves them):
 
-## About unfiltered behavior
-The system prompts encourage candid answers and reduce unnecessary refusals. Fine-tuning cannot guarantee unrestricted behavior or remove all base-model limits. Keep safeguards against serious harm, privacy invasion and abuse.
+```json
+{
+  "gpt-oss-20b": "openai/gpt-oss-20b",
+  "qwen-general": "Qwen/Qwen3.5-4B",
+  "qwen-coder-next": "Qwen/Qwen3-Coder-Next",
+  "deepseek-coder-lite": "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
+}
+```
 
-Compute, hosting and inference may cost money. Free GPU sessions are limited; unlimited free hosted inference is not realistic.
+The JSON keys must be stable IDs from the catalogue. Values must exactly match the model names exposed by your gateway. Do not put provider keys in client-side code or commit them to GitHub.
+
+## KRUSHY MAX
+
+MAX runs up to three configured specialists in parallel for the selected mode, then asks a judge model to compare the drafts, resolve disagreements and produce one final answer. It requires at least two configured chat models and two configured coding models before the selector marks MAX as ready. This is multi-model synthesis, not a new neural network and not guaranteed to outperform every individual model. It costs more compute per request.
+
+## Serving
+
+vLLM supports an OpenAI-compatible chat completions API and many model architectures: https://github.com/vllm-project/vllm. Secure the gateway behind authentication and network controls; do not expose an unauthenticated model server publicly. One vLLM process normally serves a configured model deployment; use a model gateway/router to route to separate model backends.
+
+## Licenses and cost
+
+Open weights do not mean zero-cost hosted inference. Some model licenses have use restrictions or gated downloads. Verify the exact model card and terms for each checkpoint. Do not assume a GitHub source-code license also licenses the model weights.
