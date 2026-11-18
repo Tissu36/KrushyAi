@@ -272,6 +272,16 @@ export async function POST(req: NextRequest) {
     }
 
     const messages = validated.messages;
+    const hasImages = validated.hasImages;
+    const map = getConfiguredModelMap();
+    const selected = typeof requestBody.model === "string" ? requestBody.model : "slot-10-max";
+    const category = requestBody.mode === "code" ? "code" : "chat";
+    const entry = MODEL_CATALOG.find((model) => model.id === selected && (model.category === category || model.category === "both"));
+
+    if (!entry) {
+      return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
+    }
+
     const user = await getUserFromRequest(req);
     const supabaseAdmin = getSupabaseAdminClient();
     let isPro = false;
@@ -280,14 +290,14 @@ export async function POST(req: NextRequest) {
       isPro = Boolean(data);
     }
 
-    if (entry?.plan === "pro" && !isPro) {
+    if (entry.plan === "pro" && !isPro) {
       return Response.json({
         error: "KRUSHY Pro is required for this model.",
         code: "PRO_REQUIRED",
       }, { status: 403 });
     }
 
-    if (user && !isPro && entry?.plan === "free" && supabaseAdmin) {
+    if (user && !isPro && entry.plan === "free" && supabaseAdmin) {
       const { data: usage } = await supabaseAdmin
         .from("usage_daily")
         .select("message_count")
@@ -305,15 +315,6 @@ export async function POST(req: NextRequest) {
       if (usageError) {
         return Response.json({ error: "Usage accounting failed. Please try again." }, { status: 500 });
       }
-    }
-    const hasImages = validated.hasImages;
-    const map = getConfiguredModelMap();
-    const selected = typeof requestBody.model === "string" ? requestBody.model : "slot-10-max";
-    const category = requestBody.mode === "code" ? "code" : "chat";
-    const entry = MODEL_CATALOG.find((model) => model.id === selected && (model.category === category || model.category === "both"));
-
-    if (entry?.plan === "pro" && process.env.KRUSHY_PRO_PREVIEW !== "true") {
-      return Response.json({ error: "This is a KRUSHY PRO model. Pro access is not enabled for this account yet." }, { status: 403 });
     }
     if (!entry) {
       return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
