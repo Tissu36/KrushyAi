@@ -156,7 +156,7 @@ async function completeWithFailover(
     try {
       return {
         value: await requestOnce(modelId, messages, signal, stream),
-        modelUsed: index === 0 ? entry.id : entry.id,
+        modelUsed: index === 0 ? entry.modelId : (entry.fallbackModelIds[candidates.slice(1).indexOf(modelId)] || `fallback-${index}`),
         fallbackAttempted,
       };
     } catch (error) {
@@ -211,9 +211,9 @@ export async function POST(req: NextRequest) {
           ...previous,
           { role: "user", content: userPrompt },
         ], req.signal, false);
-        return { name: model.name, answer: result.value as string };
+        return { name: model.name, answer: result.value as string, fallbackAttempted: result.fallbackAttempted };
       }));
-      const usable = outputs.filter((x): x is PromiseFulfilledResult<{ name: string; answer: string }> => x.status === "fulfilled").map((x) => x.value);
+      const usable = outputs.filter((x): x is PromiseFulfilledResult<{ name: string; answer: string; fallbackAttempted: boolean }> => x.status === "fulfilled").map((x) => x.value);
       if (!usable.length) return Response.json({ error: "None of the KRUSHY MAX specialist models responded. Check your model gateway and model IDs." }, { status: 502 });
 
       const judgeEntry = candidates[0];
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
         { role: "system", content: "You are KRUSHY MAX, the final synthesis intelligence. " + buildAgentInstructions(category, "KRUSHY MAX") + " Compare the independent specialist drafts, identify errors and contradictions, keep the strongest reasoning, and produce one coherent, accurate, complete answer. Do not simply concatenate drafts or invent consensus. Mention uncertainty when the drafts do not establish an answer." },
         { role: "user", content: `Workspace: ${category}\nUser request:\n${userPrompt}\n\nIndependent specialist drafts:\n${usable.map((x, i) => `DRAFT ${i + 1} — ${x.name}\n${x.answer}`).join("\n\n")}` },
       ], req.signal, false);
-      return sse(synthesis.value as string, "krushy-max", synthesis.fallbackAttempted);
+      return sse(synthesis.value as string, "krushy-max", synthesis.fallbackAttempted || usable.some((item) => item.fallbackAttempted));
     }
 
     if (!entry || !map[entry.id]) return Response.json({ error: `${entry?.name || "This model"} is not connected yet. Configure it in KRUSHY_MODEL_MAP and make sure your model gateway serves it.` }, { status: 503 });
