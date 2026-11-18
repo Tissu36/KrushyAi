@@ -66,17 +66,10 @@ function sse(text: string, modelUsed = "krushy-max", fallbackAttempted = false) 
   });
 }
 
-function gatewayFallbackAlias(modelId: string): string | null {
-  if (modelId.startsWith("claude-")) return `anthropic/${modelId}`;
-  if (modelId.startsWith("gemini-")) return `gemini/${modelId}`;
-  if (modelId.startsWith("gpt-")) return `openai/${modelId}`;
-  return null;
-}
-
 /**
- * Optional per-slot override for installations whose LiteLLM aliases differ from
- * the conventional provider/model form. Example:
- * KRUSHY_MODEL_FALLBACK_MAP={"slot-1-flagship":["my-opus-alias","my-flash-alias"]}
+ * Fallback entries are OpenRouter model slugs already (provider/model).
+ * Keep them intact; adding another provider prefix breaks valid OpenRouter IDs.
+ * KRUSHY_MODEL_FALLBACK_MAP can override a slot with alternate OpenRouter slugs.
  */
 function getFallbackAliases(entry: ModelEntry, primary: string): string[] {
   let overrides: Record<string, unknown> = {};
@@ -90,7 +83,7 @@ function getFallbackAliases(entry: ModelEntry, primary: string): string[] {
   const override = overrides[entry.id];
   const suggestions = Array.isArray(override)
     ? override.filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
-    : entry.fallbackModelIds.map(gatewayFallbackAlias).filter((value): value is string => Boolean(value));
+    : entry.fallbackModelIds;
 
   return [...new Set(suggestions.map((value) => value.trim()).filter((value) => value && value !== primary))];
 }
