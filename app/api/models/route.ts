@@ -11,7 +11,7 @@ export async function GET() {
   const chatCount = connected.filter((m) => m.category === "chat" && m.configured).length;
   const codeCount = connected.filter((m) => m.category === "code" && m.configured).length;
   const models = [
-    { id: "krushy-max", name: "KRUSHY MAX", maker: "KRUSHY", task: "Multi-model consensus + synthesis", category: "both", plan: "pro", configured: false, tag: "PRO · Upgrade required" },
+    { id: "krushy-max", name: "KRUSHY MAX", maker: "KRUSHY", task: "Multi-model consensus + synthesis", category: "both", plan: "pro", configured: process.env.KRUSHY_PRO_PREVIEW === "true" && MODEL_CATALOG.some((m) => m.plan === "pro" && Boolean(map[m.id])), tag: process.env.KRUSHY_PRO_PREVIEW === "true" ? "PRO · Preview enabled" : "PRO · Upgrade required" },
     ...connected,
   ];
   return Response.json({
