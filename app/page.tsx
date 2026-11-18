@@ -21,7 +21,8 @@ async function prepareImage(file:File):Promise<ImageAttachment>{
     if(blob&&blob.size<=MAX_UPLOAD_BYTES)break;
     if(attempt===3){canvas.width=Math.max(1,Math.round(canvas.width*.82));canvas.height=Math.max(1,Math.round(canvas.height*.82));const resizedContext=canvas.getContext("2d");if(!resizedContext){bitmap.close();throw new Error("Your browser could not resize this image.");}resizedContext.drawImage(bitmap,0,0,canvas.width,canvas.height);}
   }
-  bitmap.close();\n  if(!blob||blob.size>MAX_UPLOAD_BYTES)throw new Error("Could not compress this image below 4 MB. Try a smaller image.");
+  bitmap.close();
+  if(!blob||blob.size>MAX_UPLOAD_BYTES)throw new Error("Could not compress this image below 4 MB. Try a smaller image.");
   const dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Could not read the image."));reader.readAsDataURL(blob!);});
   return {dataUrl,name:file.name,size:blob.size};
 }
