@@ -115,13 +115,13 @@ export default function Home() {
           messages:[{role:"system",content:persona},...next.map(m=>({role:m.role,content:m.content}))],
           stream:true,
           temperature:0.7,
-          max_tokens:700,
+          max_tokens:320,
         });
         let answer="";
         setMessages([...next,{role:"assistant",content:"",modelUsed:model==="local-fast"?"KRUSHY FAST":model==="local-code"?"KRUSHY CODE":"KRUSHY VISION"}]);
         for await (const chunk of stream) {
           answer += chunk.choices?.[0]?.delta?.content || "";
-          setMessages([...next,{role:"assistant",content:answer,modelUsed:model==="local-fast"?"KRUSHY FAST · Llama 3.2 Local":model==="local-code"?"KRUSHY CODE · Llama 3.2 Local":"KRUSHY VISION · Gemma 3 Local"}]);
+          setMessages([...next,{role:"assistant",content:answer,modelUsed:model==="local-fast"?"KRUSHY FAST · SmolLM2 Local":model==="local-code"?"KRUSHY CODE · SmolLM2 Local":"KRUSHY VISION · SmolLM2 Local"}]);
         }
         setModelProgress("");
         return;
@@ -135,7 +135,7 @@ export default function Home() {
       setMessages([...next,{role:"assistant",content:"",modelUsed,fallbackAttempted}]);
       while(true){const {value,done}=await reader.read();if(done)break;const chunk=decoder.decode(value,{stream:true});for(const line of chunk.split("\n")){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")continue;try{const json=JSON.parse(raw);answer+=json.choices?.[0]?.delta?.content||"";setMessages([...next,{role:"assistant",content:answer,modelUsed,fallbackAttempted}]);}catch{}}}
     }catch(e){const message=e instanceof Error?e.message:"Something went wrong.";
-      if(model.startsWith("local-")&&(/disposed|mapAsync|GPUBuffer|external Instance/i.test(message))){const {resetLocalEngine}=await import("@/lib/local-engine");resetLocalEngine();setError("Your browser reset its GPU session. The model has been safely reset. Tap Download model, then send your message again.");}
+      if(model.startsWith("local-")&&(/disposed|mapAsync|GPUBuffer|external Instance|device lost|device was lost/i.test(message))){const {resetLocalEngine}=await import("@/lib/local-engine");resetLocalEngine();setError("Your phone/browser lost its WebGPU session. KRUSHY cleared the failed model safely. Reload this page, close other tabs, then try Download / load selected model again. KRUSHY now uses a much smaller 360M model to reduce GPU memory use. If it happens again, WebGPU is unstable on this browser/device and local AI cannot run reliably here.");}
       else setError(message);
       setMessages(next);}finally{setModelProgress("");setBusy(false);}
   }
