@@ -41,7 +41,8 @@ async function prepareImage(file:File):Promise<ImageAttachment>{
 }
 const starters = ["Build me a responsive website","Explain this code and fix the bugs","Create a React component","Help me plan my next project"];
 export default function Home() {
-  const [models,setModels] = useState<Model[]>([]);\n  const [gatewayReady,setGatewayReady] = useState(false);
+  const [models,setModels] = useState<Model[]>([]);
+  const [gatewayReady,setGatewayReady] = useState(false);
   const [model,setModel] = useState("slot-1-flagship");
   const [mode,setMode] = useState<"chat"|"code">("chat");
   const [messages,setMessages] = useState<Message[]>([]);
