@@ -3,10 +3,9 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 export async function POST(req: Request) {
   const expected = process.env.MONERIS_WEBHOOK_SECRET;
-  if (expected) {
-    const supplied = req.headers.get("x-krushy-webhook-secret");
-    if (supplied !== expected) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!expected) return NextResponse.json({ error: "Moneris webhook verification is not configured." }, { status: 503 });
+  const supplied = req.headers.get("x-krushy-webhook-secret");
+  if (!supplied || supplied !== expected) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
@@ -27,14 +26,18 @@ export async function POST(req: Request) {
     body?.status ??
     body?.subscriptionStatus ??
     body?.subscription?.status ??
-    "active",
+    "",
   ).toLowerCase();
+
+  if (!statusRaw) return NextResponse.json({ received: true, ignored: true, reason: "Missing subscription status." });
 
   const status =
     statusRaw.includes("cancel") ? "canceled" :
     statusRaw.includes("past") || statusRaw.includes("fail") || statusRaw.includes("declin") ? "past_due" :
     statusRaw.includes("expir") ? "expired" :
-    statusRaw.includes("trial") ? "trialing" : "active";
+    statusRaw.includes("trial") ? "trialing" :
+    statusRaw.includes("active") || statusRaw.includes("approved") ? "active" :
+    "inactive";
 
   const db = getSupabaseAdminClient();
   if (!db) return NextResponse.json({ error: "Server database is not configured" }, { status: 503 });
