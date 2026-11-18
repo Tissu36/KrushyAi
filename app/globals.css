@@ -234,3 +234,24 @@ button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px sol
 .connection-state.ready{color:#9ce5b4}
 .radio{padding-top:0;align-self:center}
 @media(max-width:1200px){.model-list{max-height:none}}
+
+
+/* Mobile model chooser cards */
+.mobile-model-picker{display:none}
+@media(max-width:700px){
+ .mobile-model{display:none}
+ .mobile-model-picker{display:block;margin-top:15px}
+ .mobile-picker-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#d6d7df;font:9px var(--mono);letter-spacing:1px}
+ .mobile-picker-heading span{color:#9294a0;font-size:8px}
+ .mobile-model-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:190px;overflow:auto;padding:1px 2px 4px 1px}
+ .mobile-model-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0;padding:9px;border:1px solid #30313c;border-radius:9px;background:linear-gradient(145deg,#171820,#101116);text-align:left}
+ .mobile-model-card.selected{border-color:#bd4655;background:linear-gradient(120deg,#2b141b,#17151c);box-shadow:inset 2px 0 #ff4658}
+ .mobile-card-top{display:flex;align-items:center;justify-content:space-between;gap:4px}
+ .mobile-card-top b{font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mobile-card-top i{font:6px var(--mono);font-style:normal;padding:3px 4px;border:1px solid #345e43;border-radius:4px;color:#a8e6bc;white-space:nowrap}
+ .mobile-card-top i.pro{border-color:#5b4272;color:#e6c2ff}
+ .mobile-model-card>small{font-size:8px;color:#a0a1ac}
+ .mobile-card-bottom{display:flex;flex-wrap:wrap;gap:4px}
+ .mobile-card-bottom em{font:6px var(--mono);font-style:normal;padding:3px 4px;border:1px solid #6a4d2a;border-radius:4px;color:#f1c17e}
+ .mobile-card-bottom em.zero{border-color:#345e43;color:#a8e6bc}
+}
