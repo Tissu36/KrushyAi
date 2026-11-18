@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Model = { id:string; name:string; maker:string; tag:string; task:string; category?:"chat"|"code"|"both"; configured?:boolean; github?:string };
-type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; modelUsed?:string; fallbackAttempted?:boolean };
+type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; imageSize?:number; modelUsed?:string; fallbackAttempted?:boolean };
 type ImageAttachment = { dataUrl:string; name:string; size:number };
 const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
 async function prepareImage(file:File):Promise<ImageAttachment>{
@@ -60,7 +60,9 @@ export default function Home() {
     const chosen=models.find(m=>m.id===model);
     if(!chosen?.configured){setError("This model is not connected yet. Configure your model gateway first.");return;}
     const imageForSend=attachment;
-    const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
+    const priorImageBytes=messages.reduce((total,message)=>total+(message.imageSize||0),0);
+    if(priorImageBytes+(imageForSend?.size||0)>MAX_UPLOAD_BYTES){setError("Images in this conversation exceed the 3 MB combined limit. Start a new chat before attaching another image.");return;}
+    const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl,imageSize:imageForSend?.size}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
     try {
       const apiMessages=next.map(m=>m.imageUrl?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:m.imageUrl}}]}:{role:m.role,content:m.content});
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
