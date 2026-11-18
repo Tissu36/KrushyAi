@@ -1,4 +1,4 @@
-# KRUSHY AI
+# KRUSHYAI
 
 A responsive AI workspace built with Next.js, React, TypeScript, and optional browser-local inference.
 
@@ -13,7 +13,7 @@ A responsive AI workspace built with Next.js, React, TypeScript, and optional br
 
 ## Optional remote gateway
 
-The original server-side model gateway remains available for other specialist models. To use it, configure `KRUSHY_MODEL_BASE_URL`, optional `KRUSHY_MODEL_API_KEY`, and `KRUSHY_MODEL_MAP` in your environment. Local Llama and Gemma do not use these settings.
+The server-side model gateway routes the ten KRUSHYAI profiles. Configure real upstream model IDs per slot; the profile names are not verified provider model IDs. To use it, configure `KRUSHY_MODEL_BASE_URL`, optional `KRUSHY_MODEL_API_KEY`, and `KRUSHY_MODEL_MAP` in your environment. Local Llama and Gemma do not use these settings.
 
 ## Development
 
