@@ -8,10 +8,11 @@
 ## PRO
 - The remaining specialist slots (reasoning, writing, multimodal, research, vision, agents, math and backup).
 - KRUSHY MAX multi-model synthesis.
+- Intended product allowance: unlimited messages (no user-facing token meter or token quota).
 - Pro models are hidden from execution on the server unless a future authenticated entitlement check explicitly grants access.
 
 ## Important implementation status
-The current repository has no sign-up/login system and no persistent database. Therefore it cannot honestly enforce a 20-message-per-account quota yet. A browser counter or caller-supplied user ID is not secure and can be reset or forged. The API currently exposes the 3 FREE model slots and rejects PRO model requests server-side. The plans.accountLimitActive field remains false until authentication provides a verified account ID and persistent storage (for example, Redis/Postgres) records daily usage. Do not advertise the 20/day cap as active until that backend is connected.
+The current repository has no sign-up/login system and no persistent database. Therefore it cannot honestly enforce a 20-message-per-account quota yet. A browser counter or caller-supplied user ID is not secure and can be reset or forged. The API currently exposes the 3 FREE model slots and rejects PRO model requests server-side. The plan metadata describes PRO as unlimited messages, but this is a target entitlement, not an active account benefit until authentication, subscription entitlement checks, and abuse protection are implemented. The plans.accountLimitActive field remains false until authentication provides a verified account ID and persistent storage (for example, Redis/Postgres) records daily usage. Do not advertise the 20/day cap as active until that backend is connected.
 
 ## Provider limits
 OpenRouter's own free-model quota is separate from KRUSHY's intended product quota. Provider limits can be shared by every KRUSHY user when the app uses one server-side API key. See the [current OpenRouter free model list](https://openrouter.ai/collections/free-models).
