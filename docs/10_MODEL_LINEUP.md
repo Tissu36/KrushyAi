@@ -1,19 +1,19 @@
 # KRUSHY AI — 10-slot model lineup
 
-This is the target specialist lineup supplied by the project owner. It is a routing plan, not a claim that every named checkpoint, benchmark, hosted API, or free tier has been independently verified.
+This is the project owner's original ten-role lineup, adapted to free hosted model endpoints. KRUSHY keeps the requested role prompts and workflow, while the underlying model is a free substitute—not a clone of Claude Fable, GPT Astra, Kimi, Qwen, DeepSeek, or other proprietary targets. Model access and free quotas can change.
 
-| Slot | Role | Target model | KRUSHY AI workspace |
+| Slot | Original role | Free model endpoint | OpenRouter model ID |
 |---|---|---|---|
-| 1 | Flagship general reasoning and hardest tasks | Claude Fable 5.2 | General chat / KRUSHY MAX judge |
-| 2 | Writing, nuance, and communication | Claude Fable 5.2 / Opus 5.5 | Writing specialist |
-| 3 | Multimodal creation, voice, and live web | GPT-6.2 Astra / Gemini 4 Carbon | Multimodal tools and voice workspace |
-| 4 | Advanced coding agent | Kimi K3.1 Pro | KRUSHY CODE lead |
-| 5 | Fast everyday assistant | Qwen3.8-27B / GPT-6.2 Sol | Fast chat |
-| 6 | Research and long documents | DeepSeek V4.1 Flash / Gemini 4 Carbon | Research and document analysis |
-| 7 | Vision and image understanding | Gemma 4 31B / Gemini 4 Carbon | Vision and document ingestion |
-| 8 | Tool calling and agent workflows | Mistral Small 4 / Gemini 4 Carbon | Tool orchestration |
-| 9 | Mathematics and scientific reasoning | MiMo-V2.6-Pro / Claude Fable 5.2 | Math and science specialist |
-| 10 | Lightweight and faster backup | GLM-5.3-Flash / Gemini 3.8 Flash | Fallback / low-latency chat |
+| 1 | Flagship general reasoning and hardest tasks | NVIDIA Nemotron 3 Ultra (free) | nvidia/nemotron-3-ultra:free |
+| 2 | Writing, nuance, and communication | Baidu ERNIE 5.5 Flash Preview (free) | baidu/ernie-5.5-flash-preview:free |
+| 3 | Multimodal creation, voice, and live web | NVIDIA Nemotron 3.5 Super VL (free) | nvidia/nemotron-3.5-super-vl:free |
+| 4 | Advanced coding agent (original target: Kimi K3.1 Pro) | Cohere North Mini Code (free) | cohere/north-mini-code:free |
+| 5 | Fast everyday assistant | NVIDIA Nemotron 3.5 Lightning (free) | nvidia/nemotron-3.5-lightning:free |
+| 6 | Research and long documents | Dots3-Note Preview (free) | dots-studio/dots3-note-preview:free |
+| 7 | Vision and image understanding | inclusionAI Ling 3.2 Flash (free) | inclusionai/ling-3.2-flash:free |
+| 8 | Tool calling and agent workflows | Particle-1 (free) | particle-ai/particle-1:free |
+| 9 | Mathematics and scientific reasoning | NVIDIA Nemotron 3 Ultra (free) | nvidia/nemotron-3-ultra:free |
+| 10 | Lightweight and faster backup | Google Gemma 4 31B (free) | google/gemma-4-31b:free |
 
 ## Integration rules
 
@@ -42,3 +42,12 @@ This is the target specialist lineup supplied by the project owner. It is a rout
 ## Status
 
 The current application catalog and API use stable IDs and an OpenAI-compatible gateway. This document records the target lineup; it does not itself connect these providers or replace the existing catalog. Each GitHub repository supplied for a slot must be reviewed before implementation. After the owner confirms the actual provider/model identifier, update the catalog and server-side mapping together.
+
+
+## Free-only operation
+
+The example environment configuration uses OpenRouter's free model variants only (model IDs ending in `:free`). Set `KRUSHY_MODEL_BASE_URL=https://openrouter.ai/api/v1`, add an OpenRouter API key as a server-side secret, and copy the example slot/fallback maps. Do not purchase credits or configure paid model IDs. OpenRouter currently advertises 25+ free models and a 50-request/day free account limit; individual model providers can impose additional limits or temporary availability restrictions. This is free hosted inference, not unlimited inference. If a free endpoint is down or rate-limited, KRUSHY's configured fallbacks try another free endpoint. 
+
+Kimi K3.1 Pro can remain the coding reference in the role prompt, but its consumer app's free allowance is not the same as a free API. Kimi API usage is billed. The coding slot therefore uses Cohere North Mini Code (free) and Particle-1 (free) as hosted substitutes.
+
+The role-specific system prompts in `lib/model-catalog.ts` remain KRUSHY-authored. They adapt the free base models to the requested jobs; they do not reproduce proprietary model internals or guarantee equivalent quality.
