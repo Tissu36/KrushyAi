@@ -25,7 +25,7 @@ function validateMessages(input: unknown): { messages: ChatMessage[]; hasImages:
     for (const part of raw.content) {
       if (part?.type === "text" && typeof part.text === "string") { parts.push({ type: "text", text: part.text.slice(0, 12000) }); continue; }
       if (part?.type !== "image_url" || typeof part.image_url?.url !== "string") return null;
-      const match = part.image_url.url.match(/^data:(image\\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/]+=*)$/);
+      const match = part.image_url.url.match(/^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/]+=*)$/);
       if (!match || !IMAGE_MIME_TYPES.has(match[1])) return null;
       const estimatedBytes = Math.floor(match[2].length * 3 / 4);
       if (estimatedBytes <= 0 || estimatedBytes > MAX_IMAGE_BYTES) return null;
@@ -229,19 +229,22 @@ export async function POST(req: NextRequest) {
     const selected = typeof body.model === "string" ? body.model : "krushy-max";
     const category = body.mode === "code" ? "code" : "chat";
     const entry = MODEL_CATALOG.find((m) => m.id === selected && m.category === category);
-    if (selected !== "krushy-max" && !entry) return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });\n    if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) return Response.json({ error: "Image input is available on KRUSHY Multimodal (Slot 3), KRUSHY Vision (Slot 7), or KRUSHY MAX. Switch to a vision-capable slot and retry." }, { status: 400 });
+    if (selected !== "krushy-max" && !entry) return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
+    if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) return Response.json({ error: "Image input is available on KRUSHY Multimodal (Slot 3), KRUSHY Vision (Slot 7), or KRUSHY MAX. Switch to a vision-capable slot and retry." }, { status: 400 });
 
     if (selected === "krushy-max") {
-      const eligible = MODEL_CATALOG.filter((m) => m.category === category && map[m.id]);\n      const candidates = (hasImages ? eligible.filter((m) => IMAGE_SLOTS.has(m.id)) : eligible).slice(0, 5);
+      const eligible = MODEL_CATALOG.filter((m) => m.category === category && map[m.id]);
+      const candidates = (hasImages ? eligible.filter((m) => IMAGE_SLOTS.has(m.id)) : eligible).slice(0, 5);
       if (candidates.length < (hasImages ? 1 : 2)) return Response.json({ error: hasImages ? "KRUSHY MAX needs at least one configured vision-capable model (Slot 3 or Slot 7) to process images." : `KRUSHY MAX needs at least two configured ${category} models. Add model IDs to KRUSHY_MODEL_MAP in Vercel.` }, { status: 503 });
 
-      const userPrompt = messages[messages.length - 1].content;
+      const lastMessage = messages[messages.length - 1];
+      const userPrompt = typeof lastMessage.content === "string" ? lastMessage.content : lastMessage.content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
       const previous = messages.slice(0, -1);
       const outputs = await Promise.allSettled(candidates.map(async (model) => {
         const result = await completeWithFailover(model, map[model.id], [
           { role: "system", content: model.systemPrompt + "\n\n" + buildAgentInstructions(category, model.name) + "\nWork independently on the user's request. Do not mention other models or claim access to tools you do not have." },
           ...previous,
-          { role: "user", content: userPrompt },
+          lastMessage,
         ], req.signal, false);
         return { name: model.name, answer: result.value as string, fallbackAttempted: result.fallbackAttempted };
       }));
