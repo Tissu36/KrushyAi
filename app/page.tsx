@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type Model = { id:string; plan?:"free"|"pro"; name:string; maker:string; tag:string; task:string; category?:"chat"|"code"|"both"; configured?:boolean; github?:string };
 type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; imageSize?:number; modelUsed?:string; fallbackAttempted?:boolean };
 type ImageAttachment = { dataUrl:string; name:string; size:number };
+const LOCAL_MODELS: Model[] = [
+  {id:"local-llama",plan:"free",name:"Llama 3.2 · Local",maker:"Meta · On this device",tag:"LOCAL · First download ~879 MB",task:"Private everyday chat and coding",category:"both",configured:true},
+  {id:"local-gemma",plan:"free",name:"Gemma 3 · Local",maker:"Google · On this device",tag:"LOCAL · First download ~711 MB",task:"Fast local assistant",category:"both",configured:true},
+];
 const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
 async function prepareImage(file:File):Promise<ImageAttachment>{
   const allowed = ["image/png","image/jpeg","image/webp","image/gif"];
@@ -47,6 +51,7 @@ export default function Home() {
   const [history,setHistory] = useState<string[]>([]);
   const [attachment,setAttachment] = useState<ImageAttachment|null>(null);
   const [dailyUsage,setDailyUsage] = useState(0);
+  const [modelProgress,setModelProgress] = useState("");
   const dailyLimit = 20;
   const usageKey = `krushy-usage-${new Date().toISOString().slice(0,10)}`;
   const [compressing,setCompressing] = useState(false);
@@ -55,19 +60,42 @@ export default function Home() {
   const selected = useMemo(()=>models.find(m=>m.id===model),[models,model]);
   const activeModels = useMemo(()=>models.filter(m=>m.category==="both"||m.category===mode),[models,mode]);
   function changeMode(next:"chat"|"code"){setMode(next);const current=models.find(m=>m.id===model);if(current&&current.category!=="both"&&current.category!==next){const best=models.find(m=>m.category===next&&m.configured);setModel(best?.id||models.find(m=>m.plan==="free"&&m.configured)?.id||"");}}
-  useEffect(()=>{ fetch("/api/models").then(r=>r.json()).then(d=>{const available=d.models||[];setModels(available);const starter=available.find((m:Model)=>m.plan==="free"&&m.configured);if(starter)setModel(starter.id)}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); const used=Number(localStorage.getItem(usageKey)||"0"); setDailyUsage(Number.isFinite(used)?used:0); } catch {} },[]);
+  useEffect(()=>{ fetch("/api/models").then(r=>r.json()).then(d=>{const available=d.models||[];const combined=[...available,...LOCAL_MODELS];setModels(combined);const starter=available.find((m:Model)=>m.plan==="free"&&m.configured);setModel(starter?.id||"local-llama")}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); const used=Number(localStorage.getItem(usageKey)||"0"); setDailyUsage(Number.isFinite(used)?used:0); } catch {} },[]);
   useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"});},[messages,busy]);
   useEffect(()=>{if(messages.length){const h=[messages.filter(m=>m.role==="user").at(-1)?.content||"New chat",...history].slice(0,12);setHistory(h);localStorage.setItem("krushy-history",JSON.stringify(h));}},[messages.length]);
   async function send(text=input) {
     const value=text.trim(); if((!value&&!attachment)||busy)return;
     const chosen=models.find(m=>m.id===model);
-    if(!chosen?.configured){setError("This model is not connected yet. Configure your model gateway first.");return;}
+    if(!chosen?.configured){setError("This model is not connected yet.");return;}
+    if(model.startsWith("local-")&&attachment){setError("Local Llama and Gemma currently support text only. Remove the image or choose a connected vision model.");return;}
     if(chosen?.plan!=="pro"){const nextUsage=dailyUsage+1;setDailyUsage(nextUsage);localStorage.setItem(usageKey,String(nextUsage));}
     const imageForSend=attachment;
     const priorImageBytes=messages.reduce((total,message)=>total+(message.imageSize||0),0);
     if(priorImageBytes+(imageForSend?.size||0)>MAX_UPLOAD_BYTES){setError("Images in this conversation exceed the 3 MB combined limit. Start a new chat before attaching another image.");return;}
     const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl,imageSize:imageForSend?.size}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
     try {
+      if(model.startsWith("local-")){
+        setModelProgress("Checking browser GPU support…");
+        const { getLocalEngine } = await import("@/lib/local-engine");
+        const engine = await getLocalEngine(model, (progress)=>setModelProgress(progress));
+        const persona = model === "local-llama"
+          ? "You are KRUSHY Llama, a helpful original assistant. Be clear, capable, practical and honest. Help with everyday questions, writing, reasoning and coding. Do not claim to be another model."
+          : "You are KRUSHY Gemma, a concise and thoughtful original assistant. Help with explanations, writing, planning and problem-solving. Be accurate, practical and honest about limitations.";
+        const stream = await engine.chat.completions.create({
+          messages:[{role:"system",content:persona},...next.map(m=>({role:m.role,content:m.content}))],
+          stream:true,
+          temperature:0.7,
+          max_tokens:700,
+        });
+        let answer="";
+        setMessages([...next,{role:"assistant",content:"",modelUsed:model==="local-llama"?"Llama 3.2 · Local":"Gemma 3 · Local"}]);
+        for await (const chunk of stream) {
+          answer += chunk.choices?.[0]?.delta?.content || "";
+          setMessages([...next,{role:"assistant",content:answer,modelUsed:model==="local-llama"?"Llama 3.2 · Local":"Gemma 3 · Local"}]);
+        }
+        setModelProgress("");
+        return;
+      }
       const apiMessages=next.map(m=>m.imageUrl?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:m.imageUrl}}]}:{role:m.role,content:m.content});
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
       if(!res.ok){const d=await res.json().catch(()=>({}));throw new Error(d.error||"Request failed");}
@@ -76,7 +104,7 @@ export default function Home() {
       const modelUsed=res.headers.get("X-Krushy-Model-Used")||undefined;const fallbackAttempted=res.headers.get("X-Krushy-Fallback-Attempted")==="true";
       setMessages([...next,{role:"assistant",content:"",modelUsed,fallbackAttempted}]);
       while(true){const {value,done}=await reader.read();if(done)break;const chunk=decoder.decode(value,{stream:true});for(const line of chunk.split("\n")){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")continue;try{const json=JSON.parse(raw);answer+=json.choices?.[0]?.delta?.content||"";setMessages([...next,{role:"assistant",content:answer,modelUsed,fallbackAttempted}]);}catch{}}}
-    }catch(e){setError(e instanceof Error?e.message:"Something went wrong.");setMessages(next);}finally{setBusy(false);}
+    }catch(e){setError(e instanceof Error?e.message:"Something went wrong.");setMessages(next);}finally{setModelProgress("");setBusy(false);}
   }
   function voiceInput(){
     const w=window as Window & {webkitSpeechRecognition?:new()=>any;SpeechRecognition?:new()=>any};
@@ -103,6 +131,7 @@ export default function Home() {
       <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"KRUSHY CODE":"AI Chat"}</b></div><div className="top-right"><span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
       <div className="content">
         <div className="hero-kicker"><span/> KRUSHY Ω · MODEL LAB <span className="line"/></div>
+        {modelProgress&&<div className="model-loading">{modelProgress}</div>}
         <select className="mobile-model" value={model} onChange={e=>setModel(e.target.value)} aria-label="Choose AI model">{activeModels.map(m=><option key={m.id} value={m.id} disabled={!m.configured}>{m.name} — {m.configured?"Connected":"Not connected"}</option>)}</select>
         {messages.length===0?<div className="welcome"><div className="orb"><div className="orb-core">K</div><i/><i/><i/></div><h1>{mode==="code"?"LET'S BUILD.":"WHAT'S ON YOUR MIND?"}</h1><p>{mode==="code"?"Your AI coding partner. Plan, write, debug and understand code.":"Free models imitate premium assistant workflows. PRO unlocks more specialist roles, all powered by free endpoints."}</p>
           <div className="model-strip"><span className="model-pulse"/> SELECTED MODEL <b>{selected?.name||"KRUSHY MAX"}</b><span className="model-maker">{selected?.tag||"Connect model gateway"}</span></div>
@@ -112,7 +141,7 @@ export default function Home() {
         <div className="composer-wrap"><div className="composer">{attachment&&<div className="attachment-preview"><img src={attachment.dataUrl} alt="Selected upload"/><span>{attachment.name} · {(attachment.size/1024).toFixed(0)} KB</span><button type="button" onClick={()=>setAttachment(null)} aria-label="Remove image">×</button></div>}<textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder={mode==="code"?"Ask KRUSHY AI to write, debug or explain code...":"Message KRUSHY AI..."} rows={2}/><div className="composer-bottom"><div className="composer-tools"><input ref={fileInput} className="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={pickImage}/><button className="tool" type="button" onClick={()=>fileInput.current?.click()} disabled={compressing||busy} title="Attach image">▧ <span>{compressing?"Preparing":"Image"}</span></button><button className={mode==="code"?"tool selected":"tool"} onClick={()=>changeMode(mode==="code"?"chat":"code")}>⌘ <span>Code</span></button><button className={listening?"tool selected":"tool"} onClick={voiceInput}>{listening?"●":"◖"} <span>{listening?"Listening":"Voice"}</span></button><span className="hint">Enter to send · Shift + Enter for new line</span></div><button className="send" onClick={()=>send()} disabled={busy||(!input.trim()&&!attachment)}>{busy?"…":"↑"}</button></div></div><div className="composer-note">{model==="krushy-max"||model==="slot-1-flagship"||model==="slot-3-multimodal"||model==="slot-7-vision"?"Images supported · PNG, JPEG, WebP, GIF · compressed to max 3 MB":"Attach an image to switch to a vision-capable model"} · KRUSHY AI can make mistakes.</div></div>
       </div>
     </section>
-    <aside className="model-panel"><div className="panel-title">MODEL SELECTOR <span>● LIVE</span></div><div className="plan-usage"><b>FREE</b> {Math.max(0,dailyLimit-dailyUsage)} / 20 messages left today</div><p>FREE includes 3 starter models. PRO unlocks all specialist models and KRUSHY MAX.</p><div className="model-list">{activeModels.map((m,i)=><button key={m.id} disabled={!m.configured} className={model===m.id?"model-option chosen":"model-option"} onClick={()=>setModel(m.id)}><div className="model-icon">{m.id==="krushy-max"?"✦":m.maker==="OpenAI"?"◎":m.maker==="Google"?"✦":m.maker==="DeepSeek"?"D":m.maker==="Qwen"?"Q":m.maker==="Meta"?"M":"✳"}</div><div className="model-info"><b>{m.name}</b><small>{m.maker} · {m.task}</small><small>{m.plan==="pro"?(m.configured?"PRO · Preview / plan access":"PRO · Configure free endpoint"):m.tag}</small></div><span className="radio">{model===m.id?"●":"○"}</span></button>)}</div><div className="panel-footer"><div className="secure">♢ <span><b>PRIVATE CONNECTION</b><small>API keys stay on the server</small></span></div><a href="https://github.com/Tissu36/KrushyAi/blob/main/training/README.md" target="_blank" rel="noreferrer">Open-source model collection ↗</a></div></aside>
+    <aside className="model-panel"><div className="panel-title">MODEL SELECTOR <span>● LIVE</span></div><div className="plan-usage"><b>FREE</b> {Math.max(0,dailyLimit-dailyUsage)} / 20 messages left today</div><p>Local Llama and Gemma run in your browser. First download requires Wi-Fi, storage and WebGPU support.</p><div className="model-list">{activeModels.map((m,i)=><button key={m.id} disabled={!m.configured} className={model===m.id?"model-option chosen":"model-option"} onClick={()=>setModel(m.id)}><div className="model-icon">{m.id==="krushy-max"?"✦":m.maker==="OpenAI"?"◎":m.maker==="Google"?"✦":m.maker==="DeepSeek"?"D":m.maker==="Qwen"?"Q":m.maker==="Meta"?"M":"✳"}</div><div className="model-info"><b>{m.name}</b><small>{m.maker} · {m.task}</small><small>{m.plan==="pro"?(m.configured?"PRO · Preview / plan access":"PRO · Configure free endpoint"):m.tag}</small></div><span className="radio">{model===m.id?"●":"○"}</span></button>)}</div><div className="panel-footer"><div className="secure">♢ <span><b>PRIVATE CONNECTION</b><small>Local models run on your device</small></span></div><a href="https://github.com/Tissu36/KrushyAi/blob/main/training/README.md" target="_blank" rel="noreferrer">Open-source model collection ↗</a></div></aside>
     {sidebar&&<button className="scrim" onClick={()=>setSidebar(false)}/>}
   </main>;
 }
