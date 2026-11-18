@@ -188,7 +188,7 @@ async function completeWithFailover(
     try {
       return {
         value: await requestOnce(modelId, messages, signal, stream),
-        modelUsed: index === 0 ? entry.modelId : (entry.fallbackModelIds[candidates.slice(1).indexOf(modelId)] || `fallback-${index}`),
+        modelUsed: index === 0 ? primaryModel : (entry.fallbackModelIds[candidates.slice(1).indexOf(modelId)] || modelId),
         fallbackAttempted,
       };
     } catch (error) {
