@@ -68,3 +68,22 @@
 .active-pro-tool button{margin-left:auto;border:0;background:transparent;color:#d8c4ed;font-size:16px}
 @media(max-width:1100px){.pro-preview-card{display:block}}
 @media(max-width:700px){.pro-top-button{padding:6px 8px;font-size:8px}.pro-tool-row{gap:5px}.pro-tool{font-size:8px;padding:6px 7px}.pro-preview-card{margin-bottom:12px}}
+
+
+/* Provider-aware KRUSHY model controls */
+.provider-model-picker{margin:14px 0 12px;padding:11px;border:1px solid #3b282a;border-radius:9px;background:linear-gradient(145deg,#171011,#101010)}
+.provider-model-picker label,.provider-readout>span,.mobile-provider>span{display:block;color:#a46a70;font:9px var(--mono);letter-spacing:1.2px;margin-bottom:7px}
+.provider-model-picker select{width:100%;padding:10px 9px;border:1px solid #5b3035;border-radius:7px;background:#100d0e;color:#f4e9ea;font:10px var(--sans);outline:none}
+.provider-model-picker select:focus{border-color:#ff5964;box-shadow:0 0 0 2px #ff303b18}
+.provider-model-picker option{background:#111;color:#fff}
+.provider-readout{margin-top:10px;padding:9px;border-radius:7px;background:#1b1112;border:1px solid #392326}
+.provider-readout>span{font-size:8px;margin-bottom:4px}
+.provider-readout b,.mobile-provider b{display:block;color:#f3dfe1;font-size:11px}
+.provider-readout small,.mobile-provider small{display:block;color:#887779;font-size:9px;margin-top:4px;line-height:1.5}
+.model-confirmation{margin-top:11px;padding:10px 12px;border:1px solid #5b3035;border-left:3px solid var(--red);border-radius:7px;background:linear-gradient(110deg,#1c1113,#111);color:#c8babc;font:10px/1.8 var(--sans);overflow-wrap:anywhere}
+.model-confirmation-title{margin-bottom:5px;color:#ff7a82;font:9px var(--mono);letter-spacing:1.1px}
+.model-confirmation b{color:#f4e8e9;font-weight:700}
+.model-confirmation p{margin:7px 0 0;color:#9d898c;font-size:9px;line-height:1.65}
+.mobile-provider{display:none}
+@media(max-width:1100px){.provider-model-picker{display:none}}
+@media(max-width:700px){.mobile-provider{display:block;margin-top:7px;padding:9px 11px;border:1px solid #3b282a;border-radius:7px;background:#151011}.mobile-provider>span{font-size:8px;margin-bottom:4px}.mobile-provider b{font-size:10px}.mobile-provider small{font-size:8px}}
