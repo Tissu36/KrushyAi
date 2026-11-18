@@ -6,7 +6,7 @@ export async function GET() {
   const connected = MODEL_CATALOG.map((m) => ({
     ...m,
     configured: Boolean(map[m.id]),
-    tag: m.plan === "pro" ? (process.env.KRUSHY_PRO_PREVIEW === "true" ? "PRO · Preview enabled" : "PRO · Upgrade required") : map[m.id] ? "FREE · Connected" : "FREE · Not configured",
+    tag: m.plan === "pro" ? (map[m.id] ? "PRO PLAN · ROUTE CONFIGURED" : "PRO PLAN · PROVIDER NOT CONNECTED") : map[m.id] ? "FREE PLAN · ROUTE CONFIGURED · API BILLING MAY APPLY" : "FREE PLAN · PROVIDER NOT CONNECTED",
   }));
   const chatCount = connected.filter((m) => (m.category === "chat" || m.category === "both") && m.configured).length;
   const codeCount = connected.filter((m) => (m.category === "code" || m.category === "both") && m.configured).length;
@@ -22,6 +22,6 @@ export async function GET() {
     },
     counts: { chat: chatCount, code: codeCount },
     maxReady: false,
-    gatewayReady: Boolean(process.env.KRUSHY_MODEL_BASE_URL && (!process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") || process.env.KRUSHY_MODEL_API_KEY)),
+    gatewayReady: Boolean(process.env.KRUSHY_MODEL_BASE_URL && (!process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") || process.env.KRUSHY_MODEL_API_KEY)),\n    providerConnection: { connected: Boolean(process.env.KRUSHY_MODEL_BASE_URL && (!process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") || process.env.KRUSHY_MODEL_API_KEY)), gateway: process.env.KRUSHY_MODEL_BASE_URL ? (process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") ? "OpenRouter" : "Custom OpenAI-compatible gateway") : null, credentialsPresent: Boolean(process.env.KRUSHY_MODEL_API_KEY) },
   }, { headers: { "Cache-Control": "no-store" } });
 }
