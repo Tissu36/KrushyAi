@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { MODEL_CATALOG, getConfiguredModelMap } from "@/lib/model-catalog";
+import { buildAgentInstructions } from "@/lib/agent-core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,7 +46,6 @@ export async function POST(req: NextRequest) {
     if (selected !== "krushy-max" && !entry) return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
 
     if (selected === "krushy-max") {
-      // Each specialist receives its own dedicated system prompt for the active workspace.
       const candidates = MODEL_CATALOG.filter((m) => m.category === category && map[m.id]).slice(0, 5);
       if (candidates.length < 2) return Response.json({ error: `KRUSHY MAX needs at least two configured ${category} models. Add model IDs to KRUSHY_MODEL_MAP in Vercel.` }, { status: 503 });
       const userPrompt = messages[messages.length - 1].content;
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       const outputs = await Promise.allSettled(candidates.map(async (model) => ({
         name: model.name,
         answer: await complete(map[model.id], [
-          { role: "system", content: model.systemPrompt + " Work independently on the user's request. Give your strongest answer. Do not mention other models or claim access to tools you do not have." },
+          { role: "system", content: model.systemPrompt + "\n\n" + buildAgentInstructions(category, model.name) + "\nWork independently on the user's request. Do not mention other models or claim access to tools you do not have." },
           ...previous,
           { role: "user", content: userPrompt },
         ], req.signal, false) as string,
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       if (!usable.length) return Response.json({ error: "None of the KRUSHY MAX specialist models responded. Check your model gateway and model IDs." }, { status: 502 });
       const judge = map["gpt-oss-20b"] || map[candidates[0].id];
       const synthesis = await complete(judge, [
-        { role: "system", content: "You are KRUSHY MAX, the final synthesis intelligence. Compare the independent specialist drafts, identify errors and contradictions, keep the strongest reasoning, and produce one coherent, accurate, complete answer. For coding tasks, prioritize compilable integrated code, tests, security, and consistency. For chat tasks, prioritize factual accuracy, clarity, and useful explanations. Do not simply concatenate drafts or invent consensus. Mention uncertainty when the drafts do not establish an answer." },
+        { role: "system", content: "You are KRUSHY MAX, the final synthesis intelligence. " + buildAgentInstructions(category, "KRUSHY MAX") + " Compare the independent specialist drafts, identify errors and contradictions, keep the strongest reasoning, and produce one coherent, accurate, complete answer. Do not simply concatenate drafts or invent consensus. Mention uncertainty when the drafts do not establish an answer." },
         { role: "user", content: `Workspace: ${category}\nUser request:\n${userPrompt}\n\nIndependent specialist drafts:\n${usable.map((x, i) => `DRAFT ${i + 1} — ${x.name}\n${x.answer}`).join("\n\n")}` },
       ], req.signal, false) as string;
       return sse(synthesis);
@@ -70,7 +70,10 @@ export async function POST(req: NextRequest) {
 
     if (!entry || !map[entry.id]) return Response.json({ error: `${entry?.name || "This model"} is not connected yet. Configure it in KRUSHY_MODEL_MAP and make sure your model gateway serves it.` }, { status: 503 });
     const sharedGuidance = " Be candid and helpful, avoid unnecessary refusals, be accurate about uncertainty, and do not claim to have executed code, browsed, or changed files unless you actually have. Do not provide actionable instructions for serious real-world harm or privacy invasion.";
-    const upstream = await complete(map[entry.id], [{ role: "system", content: entry.systemPrompt + sharedGuidance }, ...messages], req.signal, true) as Response;
+    const upstream = await complete(map[entry.id], [
+      { role: "system", content: entry.systemPrompt + "\n\n" + buildAgentInstructions(category, entry.name) + sharedGuidance },
+      ...messages,
+    ], req.signal, true) as Response;
     return new Response(upstream.body, { headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "KRUSHY AI could not process that request." }, { status: 500 });
