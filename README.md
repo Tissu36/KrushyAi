@@ -25,6 +25,8 @@ Provider access, model IDs, prices and free quotas change. A model may require p
 ## Agent architecture
 - Shared task behaviour lives in `lib/agent-core.ts` and is injected into both chat and coding requests.
 - Tool integration design and deployment boundaries are documented in `docs/AGENT_ARCHITECTURE.md`.
+- Code-rendered video creation workflow is documented in `docs/VIDEO_AGENT.md`.
+- Gemini provider research and secure integration guidance are documented in `docs/GEMINI_PROVIDER_RESEARCH.md`.
 - The current app does not yet ship autonomous repository editing, shell execution, web search, browser automation, remote desktop control, hosted real-time voice, document parsing, database-backed accounts, billing, or subscription enforcement. These require separate secure integrations and configuration.
 - The current browser speech controls use device/browser APIs; they are not a hosted speech-to-speech service.
 
