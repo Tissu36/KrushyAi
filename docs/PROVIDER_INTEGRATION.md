@@ -21,7 +21,7 @@ Useful upstreams:
 - Prompt archives and "awesome" repositories are references. They do not host model weights or grant access to closed models.
 - A community integration may describe an unreleased or restricted model. Do not assume its suggested ID works with a public API.
 
-In particular, the supplied Gemini 4 Carbon community index reports restricted rollout rather than general developer API access. Confirm current availability with Google before attempting to connect it. Treat model labels such as "Fable", "Astra", "Sol", "Carbon", and "Flash" as unverified until the provider's official model catalogue or a successful provider response confirms the exact ID and access.
+Use exact provider IDs, not marketing nicknames or guessed suffixes. The current catalog records `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, `gemini-4-carbon`, and `gemini-3.8-flash` as target IDs. Availability can still depend on provider account, region, gateway support, and API product. The `.env.example` uses Gemini 3.8 Flash and Claude Opus/Sonnet targets as a conservative starting configuration. Carbon and Fable are not assumed to be available just because they appear in the catalog.
 
 ## Configure the gateway
 
@@ -33,7 +33,7 @@ KRUSHY_MODEL_API_KEY=your_gateway_key
 KRUSHY_MODEL_MAP={"slot-1-flagship":"provider/model-id","slot-2-writing":"provider/model-id"}
 ```
 
-The map keys must match IDs present in `lib/model-catalog.ts`. Values are exact model aliases configured in the gateway. Never prefix secrets with `NEXT_PUBLIC_`, commit them, or paste them into chat.
+The ten stable slot keys are `slot-1-flagship`, `slot-2-writing`, `slot-3-multimodal`, `slot-4-coding`, `slot-5-fast`, `slot-6-research`, `slot-7-vision`, `slot-8-agents`, `slot-9-math-science`, and `slot-10-backup`. Values are exact model aliases configured in the gateway. The catalog records preferred upstream IDs and suggested fallbacks for operator reference; these fallback lists are not automatic retries. The current route uses the one alias configured for each slot. Never prefix secrets with `NEXT_PUBLIC_`, commit them, or paste them into chat.
 
 For LiteLLM, configure each alias in the proxy's model list and connect the provider credentials through its server environment. The gateway should enforce authentication, rate limits, spend limits, and provider allowlists.
 
