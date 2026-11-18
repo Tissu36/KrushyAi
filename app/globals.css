@@ -208,3 +208,29 @@ button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px sol
 .model-info small:nth-child(4){color:#777985;font-family:var(--sans);font-size:8px;line-height:1.5;margin-top:5px;white-space:normal}
 .model-info small:nth-child(3){color:#e2a0a7;font-family:var(--mono);font-size:7px;letter-spacing:.2px}
 @media(max-width:700px){.model-info small:nth-child(4){font-size:8px}}
+
+
+/* Modern model picker: distinguish subscription access from inference cost. */
+.plan-usage{display:flex;align-items:center;gap:8px}
+.plan-usage b{display:inline-flex;align-items:center;padding:4px 7px;border:1px solid #45664f;border-radius:5px;background:#122018;color:#9ce5b4;font:9px var(--mono);letter-spacing:.7px}
+.model-list{gap:9px;max-height:calc(100vh - 500px);padding:2px 3px 5px 1px}
+.model-option{min-height:82px;padding:11px 10px;gap:10px;border:1px solid #292a35;background:linear-gradient(145deg,#171820,#101116);border-radius:12px;transition:transform .18s,border-color .18s,background .18s}
+.model-option:hover{transform:translateY(-1px);border-color:#69505a;background:#1c1820}
+.model-option.chosen{border-color:#bd4655;background:linear-gradient(110deg,#2b141b,#17151c);box-shadow:inset 3px 0 #ff4658,0 9px 24px #0004}
+.model-icon{width:34px;height:34px;flex-basis:34px;border-radius:10px;font-size:15px}
+.model-info{display:flex;flex-direction:column;gap:5px}
+.model-name-line{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.model-name-line>b{font-size:11px;overflow:hidden;text-overflow:ellipsis}
+.tier-pill,.cost-pill,.connection-state{display:inline-flex;align-items:center;width:max-content;border-radius:4px;font:7px var(--mono);letter-spacing:.35px;white-space:nowrap}
+.tier-pill{padding:3px 5px}
+.tier-pill.free{color:#a8e6bc;background:#14251b;border:1px solid #345e43}
+.tier-pill.pro{color:#e6c2ff;background:#21172b;border:1px solid #5b4272}
+.model-info small{font-size:8px;line-height:1.4;white-space:normal}
+.model-cost-line{display:flex;align-items:center;justify-content:space-between;gap:5px;flex-wrap:wrap}
+.cost-pill{padding:3px 5px}
+.cost-pill.zero{color:#a8e6bc;background:#14251b;border:1px solid #345e43}
+.cost-pill.variable{color:#f1c17e;background:#271d12;border:1px solid #6a4d2a}
+.connection-state{color:#e7a1a8}
+.connection-state.ready{color:#9ce5b4}
+.radio{padding-top:0;align-self:center}
+@media(max-width:1200px){.model-list{max-height:none}}
