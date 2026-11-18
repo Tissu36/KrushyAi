@@ -220,7 +220,7 @@ async function completeWithFailover(
     if (index > 0) fallbackAttempted = true;
     try {
       return {
-        value: await requestOnce(modelId, messages, signal, stream),
+        value: await requestOnce(modelId, messages, signal, stream, apiKey),
         modelUsed: index === 0 ? primaryModel : (entry.fallbackModelIds[candidates.slice(1).indexOf(modelId)] || modelId),
         fallbackAttempted,
       };
@@ -268,7 +268,7 @@ export async function POST(req: NextRequest) {
       }, { status: 503 });
     }
 
-    const messages = validated.messages;
+    const authHeader = req.headers.get("authorization");\n    const userOpenRouterKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";\n    const apiKey = userOpenRouterKey || process.env.OPENROUTER_API_KEY || "";\n    if (!apiKey) {\n      return Response.json({ error: "Connect your OpenRouter account before sending a cloud-model request." }, { status: 401 });\n    }\n\n    const messages = validated.messages;
     const hasImages = validated.hasImages;
     const map = getConfiguredModelMap();
     const selected = typeof requestBody.model === "string" ? requestBody.model : "slot-10-max";
@@ -278,10 +278,10 @@ export async function POST(req: NextRequest) {
     if (entry?.plan === "pro" && process.env.KRUSHY_PRO_PREVIEW !== "true") {
       return Response.json({ error: "This is a KRUSHY PRO model. Pro access is not enabled for this account yet." }, { status: 403 });
     }
-    if (selected !== "krushy-max" && !entry) {
+    if (!entry) {
       return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
     }
-    if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) {
+    if (hasImages && !IMAGE_SLOTS.has(selected)) {
       return Response.json({ error: "Image input is restricted to the designated vision profile slots. The configured upstream model must actually support image input." }, { status: 400 });
     }
 
@@ -306,7 +306,7 @@ export async function POST(req: NextRequest) {
           { role: "system", content: model.systemPrompt + "\n\n" + buildAgentInstructions(category, model.name) + "\nWork independently on the user's request. Do not mention other models or claim access to tools you do not have." },
           ...previous,
           lastMessage,
-        ], req.signal, false);
+        ], req.signal, false, apiKey);
         return { name: model.name, answer: result.value as string, fallbackAttempted: result.fallbackAttempted };
       }));
       const usable = outputs
@@ -326,7 +326,7 @@ export async function POST(req: NextRequest) {
           role: "user",
           content: `Workspace: ${category}\nUser request:\n${userPrompt}\n\nIndependent specialist drafts:\n${usable.map((item, index) => `DRAFT ${index + 1} — ${item.name}\n${item.answer}`).join("\n\n")}`,
         },
-      ], req.signal, false);
+      ], req.signal, false, apiKey);
 
       const fallbackAttempted = synthesis.fallbackAttempted || usable.some((item) => item.fallbackAttempted);
       return sse(synthesis.value as string, `krushy-max:${synthesis.modelUsed}`, fallbackAttempted);
@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
     const result = await completeWithFailover(entry, map[entry.id], [
       { role: "system", content: entry.systemPrompt + "\n\n" + buildAgentInstructions(category, entry.name) + sharedGuidance },
       ...messages,
-    ], req.signal, true);
+    ], req.signal, true, apiKey);
 
     // The upstream stream is returned untouched. If it fails after streaming starts,
     // the connection ends; output from a second model is never spliced into it.
