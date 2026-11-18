@@ -94,7 +94,7 @@ export default function Home() {
         setMessages([...next,{role:"assistant",content:"",modelUsed:model==="local-fast"?"KRUSHY FAST · Llama 3.2 Local":model==="local-code"?"KRUSHY CODE · Llama 3.2 Local":"KRUSHY VISION · Gemma 3 Local"}]);
         for await (const chunk of stream) {
           answer += chunk.choices?.[0]?.delta?.content || "";
-          setMessages([...next,{role:"assistant",content:answer,modelUsed:model==="local-llama"?"Llama 3.2 · Local":"Gemma 3 · Local"}]);
+          setMessages([...next,{role:"assistant",content:answer,modelUsed:model==="local-fast"?"KRUSHY FAST · Llama 3.2 Local":model==="local-code"?"KRUSHY CODE · Llama 3.2 Local":"KRUSHY VISION · Gemma 3 Local"}]);
         }
         setModelProgress("");
         return;
