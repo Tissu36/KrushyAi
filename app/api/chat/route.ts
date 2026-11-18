@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
         { role: "system", content: "You are KRUSHY MAX, the final synthesis intelligence. " + buildAgentInstructions(category, "KRUSHY MAX") + " Compare the independent specialist drafts, identify errors and contradictions, keep the strongest reasoning, and produce one coherent, accurate, complete answer. Do not simply concatenate drafts or invent consensus. Mention uncertainty when the drafts do not establish an answer." },
         { role: "user", content: `Workspace: ${category}\nUser request:\n${userPrompt}\n\nIndependent specialist drafts:\n${usable.map((x, i) => `DRAFT ${i + 1} — ${x.name}\n${x.answer}`).join("\n\n")}` },
       ], req.signal, false);
-      return sse(synthesis.value as string, "krushy-max", synthesis.fallbackAttempted || usable.some((item) => item.fallbackAttempted));
+      return sse(synthesis.value as string, `krushy-max:${synthesis.modelUsed}`, synthesis.fallbackAttempted || usable.some((item) => item.fallbackAttempted));
     }
 
     if (!entry || !map[entry.id]) return Response.json({ error: `${entry?.name || "This model"} is not connected yet. Configure it in KRUSHY_MODEL_MAP and make sure your model gateway serves it.` }, { status: 503 });
