@@ -17,7 +17,7 @@ async function prepareImage(file:File):Promise<ImageAttachment>{
   let blob:Blob|null=null;
   for(let attempt=0;attempt<7;attempt++){
     const quality=Math.max(.48,.86-attempt*.07);
-    blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",quality));
+    blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/webp",quality));
     if(blob&&blob.size<=MAX_UPLOAD_BYTES)break;
     if(attempt===3){canvas.width=Math.max(1,Math.round(canvas.width*.82));canvas.height=Math.max(1,Math.round(canvas.height*.82));}
   }
