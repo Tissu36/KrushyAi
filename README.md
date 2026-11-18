@@ -5,8 +5,8 @@ A responsive AI workspace built with Next.js, React, TypeScript, and optional br
 ## Local AI (no provider API key)
 
 - KRUSHY can run Llama 3.2 1B and Gemma 3 1B directly in a compatible browser using [WebLLM](https://github.com/mlc-ai/web-llm).
-- The first use downloads model weights to the browser cache. Keep the tab open and use Wi-Fi.
-- Local inference requires WebGPU and enough free device memory/storage. The selected model weights are approximately 879 MB (Llama) and 711 MB (Gemma); actual runtime memory use is higher.
+- The first use downloads model weights to the browser cache. Download size varies by model build; keep the tab open and use Wi-Fi.
+- Local inference requires WebGPU and enough free device memory/storage. The model catalogue estimates roughly 879 MB memory for Llama and 711 MB for Gemma; these are memory estimates, not guaranteed download sizes. Actual runtime memory use can be higher.
 - Model weights are not hosted by Vercel and are not bundled into the deployment.
 - Local model chat is text-only in this integration. Image understanding and the existing remote specialist slots still require a separately configured compatible gateway.
 - A browser without WebGPU will show a clear compatibility error; the app does not silently send local prompts to a remote provider.
