@@ -11,7 +11,7 @@ export type ModelEntry = {
 
 export const MODEL_CATALOG: ModelEntry[] = [
   { id: "gpt-oss-20b", name: "GPT-OSS 20B", maker: "OpenAI", task: "Reasoning + general chat", category: "chat", github: "https://github.com/openai/gpt-oss", modelId: "openai/gpt-oss-20b", note: "Smaller open-weight reasoning model" },
-  { id: "qwen-general", name: "Qwen 3.5 4B", maker: "Qwen", task: "Fast general chat", category: "chat", github: "https://github.com/QwenLM", modelId: "Qwen/Qwen3.5-4B", note: "Small fine-tuning starting point; verify exact checkpoint availability" },
+  { id: "qwen-general", name: "Qwen3.8 27B", maker: "Qwen", task: "Advanced general + agentic chat", category: "chat", github: "https://github.com/QwenLM/Qwen3.8", modelId: "Qwen/Qwen3.8-27B", note: "Latest Qwen open model family; substantial GPU memory required" },
   { id: "gemma-general", name: "Gemma 4", maker: "Google", task: "General + multimodal", category: "chat", github: "https://github.com/google-deepmind/gemma", modelId: "google/gemma-4-31B-it", note: "Open-weight family; gated terms may apply" },
   { id: "llama4-scout", name: "Llama 4 Scout", maker: "Meta", task: "Long-context general chat", category: "chat", github: "https://github.com/meta-llama/llama", modelId: "meta-llama/Llama-4-Scout-17B-16E-Instruct", note: "Large MoE; Meta license and access requirements apply" },
   { id: "deepseek-v3", name: "DeepSeek V3", maker: "DeepSeek", task: "Advanced reasoning + chat", category: "chat", github: "https://github.com/deepseek-ai/DeepSeek-V3", modelId: "deepseek-ai/DeepSeek-V3", note: "Very large MoE; requires substantial hosted compute" },
