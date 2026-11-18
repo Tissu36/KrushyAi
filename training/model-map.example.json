@@ -1,12 +1,12 @@
 {
-  "gpt-oss-20b": "openai/gpt-oss-20b",
-  "qwen-general": "Qwen/Qwen3.5-4B",
-  "gemma-general": "google/gemma-4-31B-it",
-  "llama4-scout": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-  "deepseek-v3": "deepseek-ai/DeepSeek-V3",
-  "qwen-coder-next": "Qwen/Qwen3-Coder-Next",
-  "qwen-coder-30b": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
-  "deepseek-coder-lite": "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct",
-  "gpt-oss-code": "openai/gpt-oss-20b",
-  "gemma-code": "google/gemma-4-31B-it"
+  "gpt-oss-20b": "gpt-oss-20b",
+  "qwen-general": "qwen-general",
+  "gemma-general": "gemma-general",
+  "llama4-scout": "llama4-scout",
+  "deepseek-v3": "deepseek-v3",
+  "qwen-coder-next": "qwen-coder-next",
+  "qwen-coder-30b": "qwen-coder-30b",
+  "deepseek-coder-lite": "deepseek-coder-lite",
+  "gpt-oss-code": "gpt-oss-code",
+  "gemma-code": "gemma-code"
 }
