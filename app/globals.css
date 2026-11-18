@@ -10,3 +10,5 @@
 .message-image{display:block;max-width:min(100%,480px);max-height:360px;object-fit:contain;border:1px solid #3a292b;border-radius:9px;margin-top:10px}
 .message-meta{display:flex;align-items:center;gap:8px;margin-top:10px;color:#777;font:9px var(--mono);letter-spacing:.3px}
 .message-meta span{color:#ff858b;border:1px solid #6a3037;border-radius:4px;padding:3px 5px;font-size:8px}
+
+.model-loading{margin-top:14px;padding:10px 12px;border:1px solid #673039;background:#1b1012;color:#ffb0b5;border-radius:7px;font:10px var(--mono);line-height:1.6}
