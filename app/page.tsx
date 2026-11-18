@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-type Model = { id:string; plan?:"free"|"pro"; name:string; maker:string; tag:string; task:string; category?:"chat"|"code"|"both"; configured?:boolean; github?:string };
+type Model = { id:string; plan?:"free"|"pro"; name:string; maker:string; tag:string; task:string; note?:string; category?:"chat"|"code"|"both"; configured?:boolean; github?:string };
 type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; imageSize?:number; modelUsed?:string; modelProfile?:string; modelProvider?:string; fallbackAttempted?:boolean };
 type ImageAttachment = { dataUrl:string; name:string; size:number };
 const LOCAL_MODELS: Model[] = [
