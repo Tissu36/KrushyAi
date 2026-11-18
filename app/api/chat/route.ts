@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
     const map = getConfiguredModelMap();
     const selected = typeof requestBody.model === "string" ? requestBody.model : "krushy-max";
     const category = requestBody.mode === "code" ? "code" : "chat";
-    const entry = MODEL_CATALOG.find((model) => model.id === selected && model.category === category);
+    const entry = MODEL_CATALOG.find((model) => model.id === selected && (model.category === category || model.category === "both"));
 
     if ((selected === "krushy-max" || entry?.plan === "pro") && process.env.KRUSHY_PRO_PREVIEW !== "true") {
       return Response.json({ error: "This is a KRUSHY PRO model. Pro access is not enabled for this account yet." }, { status: 403 });
@@ -243,11 +243,11 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
     }
     if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) {
-      return Response.json({ error: "Image input is available on KRUSHY Gemma (FREE), KRUSHY Multimodal (PRO), KRUSHY Vision (PRO), or KRUSHY MAX (PRO). Switch to a vision-capable slot and retry." }, { status: 400 });
+      return Response.json({ error: "Image input is restricted to the designated vision profile slots. The configured upstream model must actually support image input." }, { status: 400 });
     }
 
     if (selected === "krushy-max") {
-      const eligible = MODEL_CATALOG.filter((model) => model.category === category && map[model.id]);
+      const eligible = MODEL_CATALOG.filter((model) => (model.category === category || model.category === "both") && map[model.id]);
       const candidates = (hasImages ? eligible.filter((model) => IMAGE_SLOTS.has(model.id)) : eligible).slice(0, 5);
       if (candidates.length < (hasImages ? 1 : 2)) {
         return Response.json({
@@ -315,6 +315,6 @@ export async function POST(req: NextRequest) {
       const status = error.status >= 400 && error.status <= 599 ? error.status : 502;
       return Response.json({ error: error.message }, { status });
     }
-    return Response.json({ error: error instanceof Error ? error.message : "KRUSHY AI could not process that request." }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : "KRUSHYAI could not process that request." }, { status: 500 });
   }
 }
