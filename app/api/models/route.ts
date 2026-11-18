@@ -7,7 +7,7 @@ export async function GET() {
   const chatCount = connected.filter((m) => m.category === "chat" && m.configured).length;
   const codeCount = connected.filter((m) => m.category === "code" && m.configured).length;
   const models = [
-    { id: "krushy-max", name: "KRUSHY MAX", maker: "KRUSHY", task: "Multi-model consensus + synthesis", category: "both", configured: chatCount >= 2 && codeCount >= 2, tag: chatCount >= 2 && codeCount >= 2 ? "MAX ready" : "Needs 2+ models per mode" },
+    { id: "krushy-max", name: "KRUSHY MAX", maker: "KRUSHY", task: "Multi-model consensus + synthesis", category: "both", configured: chatCount >= 2 && codeCount >= 2, tag: chatCount >= 2 && codeCount >= 2 ? "MAX configured — live test not run" : "Needs 2+ models per mode" },
     ...connected,
   ];
   return Response.json({ models, counts: { chat: chatCount, code: codeCount }, maxReady: chatCount >= 2 && codeCount >= 2, gatewayReady: Boolean(process.env.KRUSHY_MODEL_BASE_URL) }, { headers: { "Cache-Control": "no-store" } });
