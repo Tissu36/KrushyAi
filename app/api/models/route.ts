@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const map = getConfiguredModelMap();
-  const connected = MODEL_CATALOG.map((m) => ({ ...m, configured: Boolean(map[m.id]), tag: map[m.id] ? "Connected" : "Not connected" }));
+  const connected = MODEL_CATALOG.map((m) => ({ ...m, configured: Boolean(map[m.id]), tag: map[m.id] ? "Configured — live test not run" : "Not configured" }));
   const chatCount = connected.filter((m) => m.category === "chat" && m.configured).length;
   const codeCount = connected.filter((m) => m.category === "code" && m.configured).length;
   const models = [
