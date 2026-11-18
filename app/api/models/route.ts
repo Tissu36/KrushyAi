@@ -10,15 +10,12 @@ export async function GET() {
   }));
   const chatCount = connected.filter((m) => (m.category === "chat" || m.category === "both") && m.configured).length;
   const codeCount = connected.filter((m) => (m.category === "code" || m.category === "both") && m.configured).length;
-  const models = [
-    { id: "krushy-max", name: "KRUSHY MAX", maker: "KRUSHY", task: "Multi-model consensus + synthesis", category: "both", plan: "pro", configured: process.env.KRUSHY_PRO_PREVIEW === "true" && MODEL_CATALOG.some((m) => m.plan === "pro" && Boolean(map[m.id])), tag: process.env.KRUSHY_PRO_PREVIEW === "true" ? "PRO · Preview enabled" : "PRO · Upgrade required" },
-    ...connected,
-  ];
+  const models = connected;
   return Response.json({
     models,
     plans: {
-      free: { dailyMessageLimit: 20, unlimitedMessages: false, modelCount: 3 },
-      pro: { modelCount: MODEL_CATALOG.filter((m) => m.plan === "pro").length + 1, unlimitedMessages: true, dailyMessageLimit: null },
+      free: { dailyMessageLimit: 20, unlimitedMessages: false, modelCount: MODEL_CATALOG.length },
+      pro: { modelCount: MODEL_CATALOG.filter((m) => m.plan === "pro").length, unlimitedMessages: true, dailyMessageLimit: null },
       accountLimitActive: false,
       accountLimitNote: "The current preview uses a browser-local daily counter. Secure account-wide limits require authentication and persistent usage storage.",
       proPreviewEnabled: process.env.KRUSHY_PRO_PREVIEW === "true",
