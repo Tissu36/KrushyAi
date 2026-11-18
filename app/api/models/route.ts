@@ -22,7 +22,7 @@ export async function GET() {
     },
     counts: { chat: chatCount, code: codeCount },
     maxReady: false,
-    gatewayReady: Boolean(process.env.KRUSHY_MODEL_BASE_URL && (!process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") || process.env.KRUSHY_MODEL_API_KEY)),
-    providerConnection: { connected: Boolean(process.env.KRUSHY_MODEL_BASE_URL && (!process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") || process.env.KRUSHY_MODEL_API_KEY)), gateway: process.env.KRUSHY_MODEL_BASE_URL ? (process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") ? "OpenRouter" : "Custom OpenAI-compatible gateway") : null, credentialsPresent: Boolean(process.env.KRUSHY_MODEL_API_KEY) },
+    gatewayReady: Boolean(process.env.OPENROUTER_API_KEY),
+    providerConnection: { connected: Boolean(process.env.OPENROUTER_API_KEY), gateway: process.env.OPENROUTER_API_KEY ? "OpenRouter" : null, credentialsPresent: Boolean(process.env.KRUSHY_MODEL_API_KEY) },
   }, { headers: { "Cache-Control": "no-store" } });
 }
