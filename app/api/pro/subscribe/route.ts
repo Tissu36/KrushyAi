@@ -89,6 +89,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Moneris created the request but did not return a subscription ID." }, { status: 502 });
   }
 
+  const providerStatus = String(result?.status ?? result?.subscription?.status ?? "").toLowerCase();
+  const confirmedActive = providerStatus.includes("active") || providerStatus.includes("approved");
   const periodEnd = new Date();
   periodEnd.setMonth(periodEnd.getMonth() + 1);
 
@@ -96,14 +98,22 @@ export async function POST(req: Request) {
     user_id: user.id,
     provider: "moneris",
     provider_subscription_id: providerSubscriptionId,
-    status: "active",
+    status: confirmedActive ? "active" : "inactive",
     plan: "pro",
     current_period_start: new Date().toISOString(),
-    current_period_end: periodEnd.toISOString(),
+    current_period_end: confirmedActive ? periodEnd.toISOString() : null,
     updated_at: new Date().toISOString(),
   }, { onConflict: "provider_subscription_id" });
 
-  if (error) return NextResponse.json({ error: "Subscription was created but KRUSHY could not save the entitlement." }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Subscription was created but KRUSHY could not save its status." }, { status: 500 });
 
-  return NextResponse.json({ ok: true, pro: true, subscriptionId: providerSubscriptionId });
+  return NextResponse.json({
+    ok: true,
+    pro: confirmedActive,
+    pendingConfirmation: !confirmedActive,
+    subscriptionId: providerSubscriptionId,
+    message: confirmedActive
+      ? "Moneris confirmed the subscription. KRUSHY Pro is active."
+      : "Moneris created the subscription request. KRUSHY Pro will unlock after Moneris confirms an active status through the verified webhook.",
+  });
 }
