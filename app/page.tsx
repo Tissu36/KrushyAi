@@ -38,7 +38,9 @@ export default function Home() {
   const [speaking,setSpeaking] = useState(false);
   const [sidebar,setSidebar] = useState(false);
   const [history,setHistory] = useState<string[]>([]);
-  const [attachment,setAttachment] = useState<ImageAttachment|null>(null);\n  const [compressing,setCompressing] = useState(false);\n  const fileInput = useRef<HTMLInputElement>(null);
+  const [attachment,setAttachment] = useState<ImageAttachment|null>(null);
+  const [compressing,setCompressing] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const selected = useMemo(()=>models.find(m=>m.id===model),[models,model]);
   const activeModels = useMemo(()=>models.filter(m=>m.category==="both"||m.category===mode),[models,mode]);
@@ -50,7 +52,8 @@ export default function Home() {
     const value=text.trim(); if(!value||busy)return;
     const chosen=models.find(m=>m.id===model);
     if(!chosen?.configured){setError("This model is not connected yet. Configure your model gateway first.");return;}
-    const imageForSend=attachment;\n    const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
+    const imageForSend=attachment;
+    const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
     try {
       const apiMessages=next.map((m,i)=>i===next.length-1&&imageForSend?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:imageForSend.dataUrl}}]}:{role:m.role,content:m.content});
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
