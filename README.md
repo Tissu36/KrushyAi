@@ -17,6 +17,10 @@ A responsive multi-provider AI workspace built with Next.js, React and TypeScrip
 3. Configure `KRUSHY_MODEL_BASE_URL`, optional `KRUSHY_MODEL_API_KEY`, and `KRUSHY_MODEL_MAP` for the models you actually host.
 4. Run `npm run dev`.
 
+## Plans
+
+See [plans and limits](docs/PLANS_AND_LIMITS.md). The app currently gates model tiers server-side, but the 20-message account quota is not active until authentication and persistent usage storage are configured.
+
 ## Model gateway
 The app sends OpenAI-compatible `/chat/completions` requests to the configured gateway. The model IDs in `lib/model-catalog.ts` are stable KRUSHY IDs; map each one to a real model identifier served by your gateway. Do not assume a GitHub repository URL is itself an inference endpoint.
 
