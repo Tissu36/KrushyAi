@@ -5,9 +5,9 @@ type Model = { id:string; plan?:"free"|"pro"; name:string; maker:string; tag:str
 type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; imageSize?:number; modelUsed?:string; fallbackAttempted?:boolean };
 type ImageAttachment = { dataUrl:string; name:string; size:number };
 const LOCAL_MODELS: Model[] = [
-  {id:"local-fast",plan:"free",name:"KRUSHY FAST",maker:"Llama 3.2 · Local",tag:"FREE · Everyday chat & writing",task:"Quick answers, summaries and natural writing",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
+  {id:"local-fast",plan:"free",name:"KRUSHY FAST",maker:"On-device AI",tag:"FREE · Everyday chat & writing",task:"Quick answers, summaries and natural writing",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
   {id:"local-code",plan:"free",name:"KRUSHY CODE",maker:"Llama 3.2 · Local",tag:"FREE · Coding & reasoning",task:"Code, debugging, logic and math",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
-  {id:"local-vision",plan:"free",name:"KRUSHY VISION",maker:"Gemma 3 · Local",tag:"FREE · Research & documents (text)",task:"Long-form analysis and pasted document text",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
+  {id:"local-vision",plan:"free",name:"KRUSHY VISION",maker:"On-device AI",tag:"FREE · Research & documents (text)",task:"Long-form analysis and pasted document text",category:"both",configured:true,github:"https://github.com/mlc-ai/web-llm"},
 ];
 const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
 async function prepareImage(file:File):Promise<ImageAttachment>{
@@ -53,6 +53,7 @@ export default function Home() {
   const [attachment,setAttachment] = useState<ImageAttachment|null>(null);
   const [dailyUsage,setDailyUsage] = useState(0);
   const [modelProgress,setModelProgress] = useState("");
+  const [accountOpen,setAccountOpen] = useState(false);
   const dailyLimit = 20;
   const usageKey = `krushy-usage-${new Date().toISOString().slice(0,10)}`;
   const [compressing,setCompressing] = useState(false);
@@ -64,6 +65,12 @@ export default function Home() {
   useEffect(()=>{setModels(LOCAL_MODELS);setModel("local-fast");fetch("/api/models").then(r=>r.json()).then(d=>{const available=d.models||[];setModels([...available,...LOCAL_MODELS]);}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); const used=Number(localStorage.getItem(usageKey)||"0"); setDailyUsage(Number.isFinite(used)?used:0); } catch {} },[]);
   useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"});},[messages,busy]);
   useEffect(()=>{if(messages.length){const h=[messages.filter(m=>m.role==="user").at(-1)?.content||"New chat",...history].slice(0,12);setHistory(h);localStorage.setItem("krushy-history",JSON.stringify(h));}},[messages.length]);
+  async function downloadSelectedModel(){
+    if(!model.startsWith("local-")){setError("This model is managed by the connected provider.");return;}
+    setError("");
+    try{const {getLocalEngine}=await import("@/lib/local-engine");await getLocalEngine(model,setModelProgress);}
+    catch(e){const {resetLocalEngine}=await import("@/lib/local-engine");resetLocalEngine();setError(e instanceof Error?e.message:"Model download failed. Check WebGPU and try again.");}
+  }
   async function send(text=input) {
     const value=text.trim(); if((!value&&!attachment)||busy)return;
     const chosen=models.find(m=>m.id===model);
@@ -77,7 +84,7 @@ export default function Home() {
     try {
       if(model.startsWith("local-")){
         setModelProgress("Checking browser GPU support…");
-        const { getLocalEngine } = await import("@/lib/local-engine");
+        const { getLocalEngine, resetLocalEngine } = await import("@/lib/local-engine");
         const engine = await getLocalEngine(model, (progress)=>setModelProgress(progress));
         const persona = model === "local-fast"
           ? "You are KRUSHY FAST, an original everyday assistant inspired by the strengths people value in fast conversational models. Write naturally and warmly. Prioritize concise, useful answers, emails, summaries, brainstorming and everyday questions. Ask only necessary clarifying questions. Do not claim to be Claude or any proprietary model."
@@ -91,7 +98,7 @@ export default function Home() {
           max_tokens:700,
         });
         let answer="";
-        setMessages([...next,{role:"assistant",content:"",modelUsed:model==="local-fast"?"KRUSHY FAST · Llama 3.2 Local":model==="local-code"?"KRUSHY CODE · Llama 3.2 Local":"KRUSHY VISION · Gemma 3 Local"}]);
+        setMessages([...next,{role:"assistant",content:"",modelUsed:model==="local-fast"?"KRUSHY FAST":model==="local-code"?"KRUSHY CODE":"KRUSHY VISION"}]);
         for await (const chunk of stream) {
           answer += chunk.choices?.[0]?.delta?.content || "";
           setMessages([...next,{role:"assistant",content:answer,modelUsed:model==="local-fast"?"KRUSHY FAST · Llama 3.2 Local":model==="local-code"?"KRUSHY CODE · Llama 3.2 Local":"KRUSHY VISION · Gemma 3 Local"}]);
@@ -107,7 +114,10 @@ export default function Home() {
       const modelUsed=res.headers.get("X-Krushy-Model-Used")||undefined;const fallbackAttempted=res.headers.get("X-Krushy-Fallback-Attempted")==="true";
       setMessages([...next,{role:"assistant",content:"",modelUsed,fallbackAttempted}]);
       while(true){const {value,done}=await reader.read();if(done)break;const chunk=decoder.decode(value,{stream:true});for(const line of chunk.split("\n")){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")continue;try{const json=JSON.parse(raw);answer+=json.choices?.[0]?.delta?.content||"";setMessages([...next,{role:"assistant",content:answer,modelUsed,fallbackAttempted}]);}catch{}}}
-    }catch(e){setError(e instanceof Error?e.message:"Something went wrong.");setMessages(next);}finally{setModelProgress("");setBusy(false);}
+    }catch(e){const message=e instanceof Error?e.message:"Something went wrong.";
+      if(model.startsWith("local-")&&(/disposed|mapAsync|GPUBuffer|external Instance/i.test(message))){const {resetLocalEngine}=await import("@/lib/local-engine");resetLocalEngine();setError("Your browser reset its GPU session. The model has been safely reset. Tap Download model, then send your message again.");}
+      else setError(message);
+      setMessages(next);}finally{setModelProgress("");setBusy(false);}
   }
   function voiceInput(){
     const w=window as Window & {webkitSpeechRecognition?:new()=>any;SpeechRecognition?:new()=>any};
@@ -120,7 +130,7 @@ export default function Home() {
   function fresh(){setMessages([]);setError("");setInput("");setAttachment(null);setSidebar(false);}
   return <main className="shell">
     <aside className={`sidebar ${sidebar?"open":""}`}>
-      <div className="brand"><div className="brand-mark">K<span>.</span></div><div><b>KRUSHY<span> AI</span></b><small>YOUR AI WORKSPACE</small></div><button className="mobile-close" onClick={()=>setSidebar(false)}>×</button></div>
+      <div className="brand"><div className="brand-mark"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 7h7v11L26 7h9L21 20l14 13h-9L15 22v11H8z" fill="currentColor"/><path d="M29 29h5v5h-5z" fill="#ff303b"/></svg></div><div><b>KRUSHY<span> AI</span></b><small>YOUR AI WORKSPACE</small></div><button className="mobile-close" onClick={()=>setSidebar(false)}>×</button></div>
       <button className="new-chat" onClick={fresh}><span>＋</span> New chat</button>
       <div className="side-label">WORKSPACE</div>
       <button className={mode==="chat"?"nav active":"nav"} onClick={()=>changeMode("chat")}><span>◉</span> AI Chat</button>
@@ -131,10 +141,10 @@ export default function Home() {
       <div className="side-bottom"><div className="profile"><div className="avatar">K</div><div><b>KRUSHY</b><small>Personal workspace</small></div><span className="online-dot"/></div><div className="powered">KRUSHY MODEL FAMILY</div></div>
     </aside>
     <section className="main">
-      <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"KRUSHY CODE":"AI Chat"}</b></div><div className="top-right"><span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
+      <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"KRUSHY CODE":"AI Chat"}</b></div><div className="top-right"><button className="account-btn" onClick={()=>setAccountOpen(true)}>Sign in</button><span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
       <div className="content">
         <div className="hero-kicker"><span/> KRUSHY Ω · MODEL LAB <span className="line"/></div>
-        {modelProgress&&<div className="model-loading">{modelProgress}</div>}
+        {modelProgress&&<div className="model-loading"><div className="download-heading"><span className="download-spin"/> MODEL SETUP</div><b>{modelProgress}</b><div className="download-track"><i/></div><small>First download can take a few minutes. Keep this tab open; the model is cached on this device.</small></div>}
         <select className="mobile-model" value={model} onChange={e=>setModel(e.target.value)} aria-label="Choose AI model">{activeModels.map(m=><option key={m.id} value={m.id} disabled={!m.configured}>{m.name} — {m.configured?"Connected":"Not connected"}</option>)}</select>
         {messages.length===0?<div className="welcome"><div className="orb"><div className="orb-core">K</div><i/><i/><i/></div><h1>{mode==="code"?"LET'S BUILD.":"WHAT'S ON YOUR MIND?"}</h1><p>{mode==="code"?"Your AI coding partner. Plan, write, debug and understand code.":"Choose one of three free local specialists. No external provider account or API key is needed."}</p>
           <div className="model-strip"><span className="model-pulse"/> SELECTED MODEL <b>{selected?.name||"KRUSHY MAX"}</b><span className="model-maker">{selected?.tag||"Connect model gateway"}</span></div>
@@ -144,7 +154,7 @@ export default function Home() {
         <div className="composer-wrap"><div className="composer">{attachment&&<div className="attachment-preview"><img src={attachment.dataUrl} alt="Selected upload"/><span>{attachment.name} · {(attachment.size/1024).toFixed(0)} KB</span><button type="button" onClick={()=>setAttachment(null)} aria-label="Remove image">×</button></div>}<textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder={mode==="code"?"Ask KRUSHY AI to write, debug or explain code...":"Message KRUSHY AI..."} rows={2}/><div className="composer-bottom"><div className="composer-tools"><input ref={fileInput} className="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={pickImage}/><button className="tool" type="button" onClick={()=>fileInput.current?.click()} disabled={compressing||busy} title="Attach image">▧ <span>{compressing?"Preparing":"Image"}</span></button><button className={mode==="code"?"tool selected":"tool"} onClick={()=>changeMode(mode==="code"?"chat":"code")}>⌘ <span>Code</span></button><button className={listening?"tool selected":"tool"} onClick={voiceInput}>{listening?"●":"◖"} <span>{listening?"Listening":"Voice"}</span></button><span className="hint">Enter to send · Shift + Enter for new line</span></div><button className="send" onClick={()=>send()} disabled={busy||(!input.trim()&&!attachment)}>{busy?"…":"↑"}</button></div></div><div className="composer-note">{model==="krushy-max"||model==="slot-1-flagship"||model==="slot-3-multimodal"||model==="slot-7-vision"?"Images supported · PNG, JPEG, WebP, GIF · compressed to max 3 MB":"Attach an image to switch to a vision-capable model"} · KRUSHY AI can make mistakes.</div></div>
       </div>
     </section>
-    <aside className="model-panel"><div className="panel-title">MODEL SELECTOR <span>● LIVE</span></div><div className="plan-usage"><b>FREE</b> {Math.max(0,dailyLimit-dailyUsage)} / 20 messages left today</div><p>Three free specialists run locally in your browser using Llama 3.2 and Gemma 3. No external model API key. First download needs Wi-Fi, storage and WebGPU. Vision currently analyzes pasted text only.</p><div className="model-list">{activeModels.map((m,i)=><button key={m.id} disabled={!m.configured} className={model===m.id?"model-option chosen":"model-option"} onClick={()=>setModel(m.id)}><div className="model-icon">{m.id==="krushy-max"?"✦":m.maker==="OpenAI"?"◎":m.maker==="Google"?"✦":m.maker==="DeepSeek"?"D":m.maker==="Qwen"?"Q":m.maker==="Meta"?"M":"✳"}</div><div className="model-info"><b>{m.name}</b><small>{m.maker} · {m.task}</small><small>{m.plan==="pro"?(m.configured?"PRO · Preview / plan access":"PRO · Configure free endpoint"):m.tag}</small></div><span className="radio">{model===m.id?"●":"○"}</span></button>)}</div><div className="panel-footer"><div className="secure">♢ <span><b>PRIVATE CONNECTION</b><small>Local models run on your device</small></span></div><a href="https://github.com/Tissu36/KrushyAi/blob/main/training/README.md" target="_blank" rel="noreferrer">Open-source model collection ↗</a></div></aside>
-    {sidebar&&<button className="scrim" onClick={()=>setSidebar(false)}/>}
+    <aside className="model-panel"><div className="panel-title">MODEL SELECTOR <span>● LIVE</span></div><div className="plan-usage"><b>FREE</b> {Math.max(0,dailyLimit-dailyUsage)} / 20 messages left today</div><button className="download-model" onClick={downloadSelectedModel} disabled={!!modelProgress}>{modelProgress?"Preparing model…":"↓  Download / load selected model"}</button><p>Three free specialists run locally in your browser using Llama 3.2 and Gemma 3. No external model API key. First download needs Wi-Fi, storage and WebGPU. Vision currently analyzes pasted text only.</p><div className="model-list">{activeModels.map((m,i)=><button key={m.id} disabled={!m.configured} className={model===m.id?"model-option chosen":"model-option"} onClick={()=>setModel(m.id)}><div className="model-icon">{m.id==="krushy-max"?"✦":m.maker==="OpenAI"?"◎":m.maker==="Google"?"✦":m.maker==="DeepSeek"?"D":m.maker==="Qwen"?"Q":m.maker==="Meta"?"M":"✳"}</div><div className="model-info"><b>{m.name}</b><small>{m.task}</small><small>{m.plan==="pro"?(m.configured?"PRO · Preview / plan access":"PRO · Configure free endpoint"):m.tag}</small></div><span className="radio">{model===m.id?"●":"○"}</span></button>)}</div><div className="panel-footer"><div className="secure">♢ <span><b>PRIVATE CONNECTION</b><small>Local models run on your device</small></span></div><a href="https://github.com/Tissu36/KrushyAi/blob/main/training/README.md" target="_blank" rel="noreferrer">Open-source model collection ↗</a></div></aside>
+    {accountOpen&&<div className="account-backdrop" onClick={()=>setAccountOpen(false)}><section className="account-modal" onClick={e=>e.stopPropagation()}><button className="account-close" onClick={()=>setAccountOpen(false)}>×</button><div className="account-logo">K<span>.</span></div><h2>Welcome to KRUSHY AI</h2><p>Account sign-in is not connected yet. I can wire up secure email and Google sign-in once an authentication provider is configured; this screen will not pretend to create accounts before that is set up.</p><button className="account-primary" onClick={()=>setAccountOpen(false)}>Continue as guest</button></section></div>}{sidebar&&<button className="scrim" onClick={()=>setSidebar(false)}/>}
   </main>;
 }
