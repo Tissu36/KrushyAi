@@ -37,7 +37,8 @@ export default function Home() {
   const [listening,setListening] = useState(false);
   const [speaking,setSpeaking] = useState(false);
   const [sidebar,setSidebar] = useState(false);
-  const [history,setHistory] = useState<string[]>([]);\n  const [attachment,setAttachment] = useState<ImageAttachment|null>(null);\n  const [compressing,setCompressing] = useState(false);\n  const fileInput = useRef<HTMLInputElement>(null);
+  const [history,setHistory] = useState<string[]>([]);
+  const [attachment,setAttachment] = useState<ImageAttachment|null>(null);\n  const [compressing,setCompressing] = useState(false);\n  const fileInput = useRef<HTMLInputElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const selected = useMemo(()=>models.find(m=>m.id===model),[models,model]);
   const activeModels = useMemo(()=>models.filter(m=>m.category==="both"||m.category===mode),[models,mode]);
@@ -51,7 +52,8 @@ export default function Home() {
     if(!chosen?.configured){setError("This model is not connected yet. Configure your model gateway first.");return;}
     const imageForSend=attachment;\n    const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
     try {
-      const apiMessages=next.map((m,i)=>i===next.length-1&&imageForSend?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:imageForSend.dataUrl}}]}:{role:m.role,content:m.content});\n      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
+      const apiMessages=next.map((m,i)=>i===next.length-1&&imageForSend?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:imageForSend.dataUrl}}]}:{role:m.role,content:m.content});
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
       if(!res.ok){const d=await res.json().catch(()=>({}));throw new Error(d.error||"Request failed");}
       if(!res.body)throw new Error("Streaming is not supported by this response.");
       const reader=res.body.getReader();const decoder=new TextDecoder();let answer="";
@@ -66,7 +68,8 @@ export default function Home() {
     const recognition=new C();recognition.lang="en-CA";recognition.interimResults=true;recognition.onstart=()=>setListening(true);recognition.onend=()=>setListening(false);recognition.onerror=()=>{setListening(false);setError("Microphone unavailable. Check browser permissions.");};recognition.onresult=(e:any)=>{let t="";for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;setInput(t);};recognition.start();
   }
   function speak(text:string){if(!("speechSynthesis" in window)){setError("Speech playback is unavailable.");return;}window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.onstart=()=>setSpeaking(true);u.onend=()=>setSpeaking(false);u.onerror=()=>setSpeaking(false);window.speechSynthesis.speak(u);}
-  async function pickImage(event:React.ChangeEvent<HTMLInputElement>){const file=event.target.files?.[0];event.target.value="";if(!file)return;const vision=models.find(m=>m.id==="slot-7-vision"&&m.configured)||models.find(m=>m.id==="slot-3-multimodal"&&m.configured);if(mode==="code")setMode("chat");if(model!=="krushy-max"&&model!=="slot-3-multimodal"&&model!=="slot-7-vision"){if(vision){setModel(vision.id);setError(`Switched to ${vision.name} for image understanding.`);}else{setError("Connect Slot 3 or Slot 7 before sending images.");return;}}else if(model!=="krushy-max"&&!selected?.configured){setError("Connect this vision model before uploading images.");return;}setCompressing(true);setError("");try{setAttachment(await prepareImage(file));}catch(e){setError(e instanceof Error?e.message:"Image processing failed.");}finally{setCompressing(false);}}\n  function fresh(){setMessages([]);setError("");setInput("");setAttachment(null);setSidebar(false);}
+  async function pickImage(event:React.ChangeEvent<HTMLInputElement>){const file=event.target.files?.[0];event.target.value="";if(!file)return;const vision=models.find(m=>m.id==="slot-7-vision"&&m.configured)||models.find(m=>m.id==="slot-3-multimodal"&&m.configured);if(mode==="code")setMode("chat");if(model!=="krushy-max"&&model!=="slot-3-multimodal"&&model!=="slot-7-vision"){if(vision){setModel(vision.id);setError(`Switched to ${vision.name} for image understanding.`);}else{setError("Connect Slot 3 or Slot 7 before sending images.");return;}}else if(model!=="krushy-max"&&!selected?.configured){setError("Connect this vision model before uploading images.");return;}setCompressing(true);setError("");try{setAttachment(await prepareImage(file));}catch(e){setError(e instanceof Error?e.message:"Image processing failed.");}finally{setCompressing(false);}}
+  function fresh(){setMessages([]);setError("");setInput("");setAttachment(null);setSidebar(false);}
   return <main className="shell">
     <aside className={`sidebar ${sidebar?"open":""}`}>
       <div className="brand"><div className="brand-mark">K<span>.</span></div><div><b>KRUSHY<span> AI</span></b><small>YOUR AI WORKSPACE</small></div><button className="mobile-close" onClick={()=>setSidebar(false)}>×</button></div>
