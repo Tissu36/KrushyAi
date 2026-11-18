@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { OpenRouter } from "@openrouter/sdk";
+import { getUserFromRequest } from "@/lib/supabase-server";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { MODEL_CATALOG, getConfiguredModelMap, type ModelEntry } from "@/lib/model-catalog";
 import { buildAgentInstructions } from "@/lib/agent-core";
 
@@ -270,6 +272,40 @@ export async function POST(req: NextRequest) {
     }
 
     const messages = validated.messages;
+    const user = await getUserFromRequest(req);
+    const supabaseAdmin = getSupabaseAdminClient();
+    let isPro = false;
+    if (user && supabaseAdmin) {
+      const { data } = await supabaseAdmin.rpc("is_pro_user", { p_user_id: user.id });
+      isPro = Boolean(data);
+    }
+
+    if (entry?.plan === "pro" && !isPro) {
+      return Response.json({
+        error: "KRUSHY Pro is required for this model.",
+        code: "PRO_REQUIRED",
+      }, { status: 403 });
+    }
+
+    if (user && !isPro && entry?.plan === "free" && supabaseAdmin) {
+      const { data: usage } = await supabaseAdmin
+        .from("usage_daily")
+        .select("message_count")
+        .eq("user_id", user.id)
+        .eq("usage_date", new Date().toISOString().slice(0, 10))
+        .maybeSingle();
+      const count = Number(usage?.message_count ?? 0);
+      if (count >= 20) {
+        return Response.json({
+          error: "Your KRUSHY free daily limit is 20 messages. Upgrade to Pro for the premium profiles.",
+          code: "FREE_DAILY_LIMIT",
+        }, { status: 429 });
+      }
+      const { error: usageError } = await supabaseAdmin.rpc("increment_daily_usage", { p_user_id: user.id });
+      if (usageError) {
+        return Response.json({ error: "Usage accounting failed. Please try again." }, { status: 500 });
+      }
+    }
     const hasImages = validated.hasImages;
     const map = getConfiguredModelMap();
     const selected = typeof requestBody.model === "string" ? requestBody.model : "slot-10-max";
