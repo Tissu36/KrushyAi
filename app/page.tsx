@@ -45,7 +45,10 @@ export default function Home() {
   const [speaking,setSpeaking] = useState(false);
   const [sidebar,setSidebar] = useState(false);
   const [history,setHistory] = useState<string[]>([]);
-  const [attachment,setAttachment] = useState<ImageAttachment|null>(null);\n  const [dailyUsage,setDailyUsage] = useState(0);\n  const dailyLimit = 20;\n  const usageKey = `krushy-usage-${new Date().toISOString().slice(0,10)}`;
+  const [attachment,setAttachment] = useState<ImageAttachment|null>(null);
+  const [dailyUsage,setDailyUsage] = useState(0);
+  const dailyLimit = 20;
+  const usageKey = `krushy-usage-${new Date().toISOString().slice(0,10)}`;
   const [compressing,setCompressing] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -59,7 +62,8 @@ export default function Home() {
     const value=text.trim(); if((!value&&!attachment)||busy)return;
     const chosen=models.find(m=>m.id===model);
     if(!chosen?.configured){setError("This model is not connected yet. Configure your model gateway first.");return;}
-    if(chosen?.plan!=="pro"){const nextUsage=dailyUsage+1;setDailyUsage(nextUsage);localStorage.setItem(usageKey,String(nextUsage));}\n    const imageForSend=attachment;
+    if(chosen?.plan!=="pro"){const nextUsage=dailyUsage+1;setDailyUsage(nextUsage);localStorage.setItem(usageKey,String(nextUsage));}
+    const imageForSend=attachment;
     const priorImageBytes=messages.reduce((total,message)=>total+(message.imageSize||0),0);
     if(priorImageBytes+(imageForSend?.size||0)>MAX_UPLOAD_BYTES){setError("Images in this conversation exceed the 3 MB combined limit. Start a new chat before attaching another image.");return;}
     const next=[...messages,{role:"user" as const,content:value,imageUrl:imageForSend?.dataUrl,imageSize:imageForSend?.size}]; setMessages(next);setInput("");setAttachment(null);setError("");setBusy(true);
@@ -71,7 +75,8 @@ export default function Home() {
       const reader=res.body.getReader();const decoder=new TextDecoder();let answer="";
       const modelUsed=res.headers.get("X-Krushy-Model-Used")||undefined;const fallbackAttempted=res.headers.get("X-Krushy-Fallback-Attempted")==="true";
       setMessages([...next,{role:"assistant",content:"",modelUsed,fallbackAttempted}]);
-      while(true){const {value,done}=await reader.read();if(done)break;const chunk=decoder.decode(value,{stream:true});for(const line of chunk.split("\n")){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")continue;try{const json=JSON.parse(raw);answer+=json.choices?.[0]?.delta?.content||"";setMessages([...next,{role:"assistant",content:answer,modelUsed,fallbackAttempted}]);}catch{}}}
+      while(true){const {value,done}=await reader.read();if(done)break;const chunk=decoder.decode(value,{stream:true});for(const line of chunk.split("
+")){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")continue;try{const json=JSON.parse(raw);answer+=json.choices?.[0]?.delta?.content||"";setMessages([...next,{role:"assistant",content:answer,modelUsed,fallbackAttempted}]);}catch{}}}
     }catch(e){setError(e instanceof Error?e.message:"Something went wrong.");setMessages(next);}finally{setBusy(false);}
   }
   function voiceInput(){
