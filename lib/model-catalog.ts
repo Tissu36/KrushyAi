@@ -19,9 +19,8 @@ export const MODEL_CATALOG: ModelEntry[] = [
 ];
 
 export function getConfiguredModelMap(): Record<string, string> {
-  const base = process.env.KRUSHY_MODEL_BASE_URL || "";
-  if (!base) return {};
-  if (base.includes("openrouter.ai") && !process.env.KRUSHY_MODEL_API_KEY) return {};
+  // OpenRouter credentials stay server-side. No base URL or browser key is needed.
+  if (!process.env.OPENROUTER_API_KEY) return {};
   const providerPrefix: Record<string, string> = {
     Anthropic: "anthropic",
     OpenAI: "openai",
@@ -31,9 +30,7 @@ export function getConfiguredModelMap(): Record<string, string> {
   const result: Record<string, string> = {};
   for (const model of MODEL_CATALOG) {
     const prefix = providerPrefix[model.maker];
-    result[model.id] = base.includes("openrouter.ai") && prefix
-      ? `${prefix}/${model.modelId}`
-      : model.modelId;
+    result[model.id] = prefix ? `${prefix}/${model.modelId}` : model.modelId;
   }
   try {
     const parsed = JSON.parse(process.env.KRUSHY_MODEL_MAP || "{}");
