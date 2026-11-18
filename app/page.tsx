@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 type Model = { id:string; plan?:"free"|"pro"; name:string; maker:string; tag:string; task:string; category?:"chat"|"code"|"both"; configured?:boolean; github?:string };
 type Message = { role:"user"|"assistant"; content:string; imageUrl?:string; imageSize?:number; modelUsed?:string; fallbackAttempted?:boolean };
@@ -54,6 +56,13 @@ export default function Home() {
   const [dailyUsage,setDailyUsage] = useState(0);
   const [modelProgress,setModelProgress] = useState("");
   const [accountOpen,setAccountOpen] = useState(false);
+  const [authMode,setAuthMode] = useState<"signin"|"signup">("signin");
+  const [authEmail,setAuthEmail] = useState("");
+  const [authPassword,setAuthPassword] = useState("");
+  const [authName,setAuthName] = useState("");
+  const [authBusy,setAuthBusy] = useState(false);
+  const [authMessage,setAuthMessage] = useState("");
+  const [authUser,setAuthUser] = useState<User|null>(null);
   const dailyLimit = 20;
   const usageKey = `krushy-usage-${new Date().toISOString().slice(0,10)}`;
   const [compressing,setCompressing] = useState(false);
@@ -62,9 +71,20 @@ export default function Home() {
   const selected = useMemo(()=>models.find(m=>m.id===model),[models,model]);
   const activeModels = useMemo(()=>models.filter(m=>m.category==="both"||m.category===mode),[models,mode]);
   function changeMode(next:"chat"|"code"){setMode(next);const current=models.find(m=>m.id===model);if(current&&current.category!=="both"&&current.category!==next){const best=models.find(m=>m.category===next&&m.configured);setModel(best?.id||models.find(m=>m.plan==="free"&&m.configured)?.id||"");}}
+  useEffect(()=>{const supabase=getSupabaseBrowserClient();if(!supabase)return;supabase.auth.getUser().then(({data})=>setAuthUser(data.user));const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>setAuthUser(session?.user??null));return ()=>subscription.unsubscribe();},[]);
   useEffect(()=>{setModels(LOCAL_MODELS);setModel("local-fast");fetch("/api/models").then(r=>r.json()).then(d=>{const available=d.models||[];setModels([...available,...LOCAL_MODELS]);}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); const used=Number(localStorage.getItem(usageKey)||"0"); setDailyUsage(Number.isFinite(used)?used:0); } catch {} },[]);
   useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"});},[messages,busy]);
   useEffect(()=>{if(messages.length){const h=[messages.filter(m=>m.role==="user").at(-1)?.content||"New chat",...history].slice(0,12);setHistory(h);localStorage.setItem("krushy-history",JSON.stringify(h));}},[messages.length]);
+  async function submitAuth(){
+    const supabase=getSupabaseBrowserClient();
+    if(!supabase){setAuthMessage("Authentication is not configured yet. Add the Supabase URL and anon key to Vercel environment variables.");return;}
+    if(!authEmail.trim()||!authPassword){setAuthMessage("Enter your email and password.");return;}
+    if(authMode==="signup"&&authPassword.length<8){setAuthMessage("Use a password with at least 8 characters.");return;}
+    setAuthBusy(true);setAuthMessage("");
+    try{if(authMode==="signup"){const {data,error}=await supabase.auth.signUp({email:authEmail.trim(),password:authPassword,options:{data:{full_name:authName.trim()},emailRedirectTo:window.location.origin}});if(error)throw error;if(data.session){setAuthUser(data.user);setAccountOpen(false);setAuthPassword("");}else setAuthMessage("Account created. Check your email for the confirmation link, then sign in.");}else{const {data,error}=await supabase.auth.signInWithPassword({email:authEmail.trim(),password:authPassword});if(error)throw error;setAuthUser(data.user);setAccountOpen(false);setAuthPassword("");}}catch(e){setAuthMessage(e instanceof Error?e.message:"Sign-in failed. Please try again.");}finally{setAuthBusy(false);}
+  }
+  async function signInGoogle(){const supabase=getSupabaseBrowserClient();if(!supabase){setAuthMessage("Add the Supabase URL and anon key to Vercel environment variables first.");return;}setAuthBusy(true);setAuthMessage("");const {error}=await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:window.location.origin}});if(error){setAuthMessage(error.message);setAuthBusy(false);}}
+  async function signOut(){const supabase=getSupabaseBrowserClient();if(supabase)await supabase.auth.signOut();setAuthUser(null);}
   async function downloadSelectedModel(){
     if(!model.startsWith("local-")){setError("This model is managed by the connected provider.");return;}
     setError("");
@@ -141,7 +161,7 @@ export default function Home() {
       <div className="side-bottom"><div className="profile"><div className="avatar">K</div><div><b>KRUSHY</b><small>Personal workspace</small></div><span className="online-dot"/></div><div className="powered">KRUSHY MODEL FAMILY</div></div>
     </aside>
     <section className="main">
-      <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"KRUSHY CODE":"AI Chat"}</b></div><div className="top-right"><button className="account-btn" onClick={()=>setAccountOpen(true)}>Sign in</button><span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
+      <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"KRUSHY CODE":"AI Chat"}</b></div><div className="top-right">{authUser?<button className="account-btn" onClick={signOut}>{authUser.email?.split("@")[0]||"Account"} · Sign out</button>:<button className="account-btn" onClick={()=>{setAuthMessage("");setAccountOpen(true)}}>Sign in</button>}<span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
       <div className="content">
         <div className="hero-kicker"><span/> KRUSHY Ω · MODEL LAB <span className="line"/></div>
         {modelProgress&&<div className="model-loading"><div className="download-heading"><span className="download-spin"/> MODEL SETUP</div><b>{modelProgress}</b><div className="download-track"><i/></div><small>First download can take a few minutes. Keep this tab open; the model is cached on this device.</small></div>}
@@ -155,6 +175,6 @@ export default function Home() {
       </div>
     </section>
     <aside className="model-panel"><div className="panel-title">MODEL SELECTOR <span>● LIVE</span></div><div className="plan-usage"><b>FREE</b> {Math.max(0,dailyLimit-dailyUsage)} / 20 messages left today</div><button className="download-model" onClick={downloadSelectedModel} disabled={!!modelProgress}>{modelProgress?"Preparing model…":"↓  Download / load selected model"}</button><p>Three free specialists run locally in your browser using Llama 3.2 and Gemma 3. No external model API key. First download needs Wi-Fi, storage and WebGPU. Vision currently analyzes pasted text only.</p><div className="model-list">{activeModels.map((m,i)=><button key={m.id} disabled={!m.configured} className={model===m.id?"model-option chosen":"model-option"} onClick={()=>setModel(m.id)}><div className="model-icon">{m.id==="krushy-max"?"✦":m.maker==="OpenAI"?"◎":m.maker==="Google"?"✦":m.maker==="DeepSeek"?"D":m.maker==="Qwen"?"Q":m.maker==="Meta"?"M":"✳"}</div><div className="model-info"><b>{m.name}</b><small>{m.task}</small><small>{m.plan==="pro"?(m.configured?"PRO · Preview / plan access":"PRO · Configure free endpoint"):m.tag}</small></div><span className="radio">{model===m.id?"●":"○"}</span></button>)}</div><div className="panel-footer"><div className="secure">♢ <span><b>PRIVATE CONNECTION</b><small>Local models run on your device</small></span></div><a href="https://github.com/Tissu36/KrushyAi/blob/main/training/README.md" target="_blank" rel="noreferrer">Open-source model collection ↗</a></div></aside>
-    {accountOpen&&<div className="account-backdrop" onClick={()=>setAccountOpen(false)}><section className="account-modal" onClick={e=>e.stopPropagation()}><button className="account-close" onClick={()=>setAccountOpen(false)}>×</button><div className="account-logo">K<span>.</span></div><h2>Welcome to KRUSHY AI</h2><p>Account sign-in is not connected yet. I can wire up secure email and Google sign-in once an authentication provider is configured; this screen will not pretend to create accounts before that is set up.</p><button className="account-primary" onClick={()=>setAccountOpen(false)}>Continue as guest</button></section></div>}{sidebar&&<button className="scrim" onClick={()=>setSidebar(false)}/>}
+    {accountOpen&&<div className="account-backdrop" onClick={()=>setAccountOpen(false)}><section className="account-modal" onClick={e=>e.stopPropagation()}><button className="account-close" onClick={()=>setAccountOpen(false)}>×</button><div className="account-logo">K<span>.</span></div><h2>{authMode==="signin"?"Welcome back":"Create your KRUSHY account"}</h2><p>{authMode==="signin"?"Sign in to your personal AI workspace.":"Create an account to keep your workspace connected."}</p><button className="google-auth" onClick={signInGoogle} disabled={authBusy}><b>G</b> Continue with Google</button><div className="auth-divider"><span/>OR CONTINUE WITH EMAIL<span/></div>{authMode==="signup"&&<input className="auth-input" value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="Your name" autoComplete="name"/>}<input className="auth-input" type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="Email address" autoComplete="email"/><input className="auth-input" type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder="Password (at least 8 characters)" autoComplete={authMode==="signin"?"current-password":"new-password"}/>{authMessage&&<div className="auth-message">{authMessage}</div>}<button className="account-primary" onClick={submitAuth} disabled={authBusy}>{authBusy?"Please wait…":authMode==="signin"?"Sign in":"Create account"}</button><div className="auth-switch">{authMode==="signin"?"New to KRUSHY AI?":"Already have an account?"} <button onClick={()=>{setAuthMode(authMode==="signin"?"signup":"signin");setAuthMessage("");}}>{authMode==="signin"?"Create account":"Sign in"}</button></div><button className="guest-link" onClick={()=>setAccountOpen(false)}>Continue as guest</button></section></div>}{sidebar&&<button className="scrim" onClick={()=>setSidebar(false)}/>}
   </main>;
 }
