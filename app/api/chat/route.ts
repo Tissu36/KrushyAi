@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { OpenRouter } from "@openrouter/sdk";
 import { MODEL_CATALOG, getConfiguredModelMap, type ModelEntry } from "@/lib/model-catalog";
 import { buildAgentInstructions } from "@/lib/agent-core";
 
@@ -138,39 +139,71 @@ function wait(ms: number, signal: AbortSignal): Promise<void> {
 }
 
 async function requestOnce(modelId: string, messages: ChatMessage[], signal: AbortSignal, stream: boolean): Promise<Response | string> {
-  const base = process.env.KRUSHY_MODEL_BASE_URL?.replace(/\/$/, "");
-  if (!base) throw new UpstreamError("KRUSHY_MODEL_BASE_URL is not configured.", 503);
+  void signal;
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new UpstreamError("OPENROUTER_API_KEY is not configured. Add it to the Vercel project environment variables.", 503);
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (process.env.KRUSHY_MODEL_API_KEY) headers.Authorization = `Bearer ${process.env.KRUSHY_MODEL_API_KEY}`;
-
-  const response = await fetch(`${base}/chat/completions`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ model: modelId, messages, stream }),
-    signal,
+  const client = new OpenRouter({
+    apiKey,
+    httpReferer: process.env.NEXT_PUBLIC_SITE_URL || "https://krushy-ai.vercel.app",
+    appTitle: "KRUSHYAI",
   });
 
-  if (!response.ok) {
-    // Consume the error body so the connection can be reused, but do not expose
-    // gateway response text or internal provider details to the browser.
-    await response.text().catch(() => "");
-    if (response.status === 429 || response.status >= 500) {
-      const error = new UpstreamError(`Upstream model returned HTTP ${response.status}.`, response.status);
-      Object.assign(error, { retryDelay: retryDelayMs(response.headers) });
-      throw error;
+  try {
+    const result = await client.chat.send({
+      chatRequest: {
+        model: modelId,
+        messages: messages as any,
+        stream,
+      },
+    });
+
+    if (stream) {
+      const encoder = new TextEncoder();
+      const chunks = result as AsyncIterable<unknown>;
+      const body = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          try {
+            for await (const chunk of chunks) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\\n\\n`));
+            }
+            controller.enqueue(encoder.encode("data: [DONE]\\n\\n"));
+            controller.close();
+          } catch {
+            controller.error(new Error("OpenRouter streaming response failed."));
+          }
+        },
+      });
+      return new Response(body, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "X-Accel-Buffering": "no",
+        },
+      });
     }
-    // 400/401/403/404 and all other 4xx statuses fail immediately without failover.
-    throw new UpstreamError(`Upstream model rejected the request (HTTP ${response.status}).`, response.status);
+
+    const data = result as any;
+    const content = data.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || !content.trim()) {
+      throw new UpstreamError("OpenRouter returned an empty answer.", 502);
+    }
+    return content;
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    const candidate = Number((error as any)?.statusCode ?? (error as any)?.status ?? 502);
+    const status = Number.isInteger(candidate) && candidate >= 400 && candidate <= 599 ? candidate : 502;
+    const message =
+      status === 401 ? "OpenRouter rejected the API key. Check OPENROUTER_API_KEY in Vercel." :
+      status === 402 ? "OpenRouter needs available credits or a higher spend limit for this request." :
+      status === 403 ? "OpenRouter denied access to this model. Check model availability and account permissions." :
+      status === 404 ? `OpenRouter could not find model ${modelId}. Check the model slug in KRUSHY_MODEL_MAP.` :
+      status === 429 ? "OpenRouter rate limit reached. Wait briefly and try again." :
+      status >= 500 ? "OpenRouter or the selected model provider is temporarily unavailable." :
+      `OpenRouter rejected the request (HTTP ${status}).`;
+    throw new UpstreamError(message, status);
   }
-
-  if (stream) return response;
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || !content.trim()) throw new UpstreamError("A model returned an empty answer.", 502);
-  return content as string;
 }
-
 async function completeWithFailover(
   entry: ModelEntry,
   primaryModel: string,
