@@ -75,8 +75,7 @@ export default function Home() {
       const reader=res.body.getReader();const decoder=new TextDecoder();let answer="";
       const modelUsed=res.headers.get("X-Krushy-Model-Used")||undefined;const fallbackAttempted=res.headers.get("X-Krushy-Fallback-Attempted")==="true";
       setMessages([...next,{role:"assistant",content:"",modelUsed,fallbackAttempted}]);
-      while(true){const {value,done}=await reader.read();if(done)break;const chunk=decoder.decode(value,{stream:true});for(const line of chunk.split("
-")){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")continue;try{const json=JSON.parse(raw);answer+=json.choices?.[0]?.delta?.content||"";setMessages([...next,{role:"assistant",content:answer,modelUsed,fallbackAttempted}]);}catch{}}}
+      while(true){const {value,done}=await reader.read();if(done)break;const chunk=decoder.decode(value,{stream:true});for(const line of chunk.split("\n")){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")continue;try{const json=JSON.parse(raw);answer+=json.choices?.[0]?.delta?.content||"";setMessages([...next,{role:"assistant",content:answer,modelUsed,fallbackAttempted}]);}catch{}}}
     }catch(e){setError(e instanceof Error?e.message:"Something went wrong.");setMessages(next);}finally{setBusy(false);}
   }
   function voiceInput(){
