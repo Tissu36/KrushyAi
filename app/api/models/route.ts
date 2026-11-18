@@ -25,6 +25,6 @@ export async function GET() {
     },
     counts: { chat: chatCount, code: codeCount },
     maxReady: false,
-    gatewayReady: Boolean(process.env.KRUSHY_MODEL_BASE_URL),
+    gatewayReady: Boolean(process.env.KRUSHY_MODEL_BASE_URL && (!process.env.KRUSHY_MODEL_BASE_URL.includes("openrouter.ai") || process.env.KRUSHY_MODEL_API_KEY)),
   }, { headers: { "Cache-Control": "no-store" } });
 }
