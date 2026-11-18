@@ -165,9 +165,9 @@ async function requestOnce(modelId: string, messages: ChatMessage[], signal: Abo
         async start(controller) {
           try {
             for await (const chunk of chunks) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\\n\\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
             }
-            controller.enqueue(encoder.encode("data: [DONE]\\n\\n"));
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             controller.close();
           } catch {
             controller.error(new Error("OpenRouter streaming response failed."));
