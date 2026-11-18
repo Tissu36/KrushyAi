@@ -1,0 +1,5 @@
+unsloth
+trl
+datasets
+transformers>=5.0.0
+accelerate
