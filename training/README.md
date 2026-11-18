@@ -52,3 +52,15 @@ vLLM supports an OpenAI-compatible chat completions API and many model architect
 ## Licenses and cost
 
 Open weights do not mean zero-cost hosted inference. Some model licenses have use restrictions or gated downloads. Verify the exact model card and terms for each checkpoint. Do not assume a GitHub source-code license also licenses the model weights.
+
+
+## Multi-model gateway scripts
+
+The website expects one OpenAI-compatible gateway URL. This repository includes `scripts/litellm.config.yaml` as a LiteLLM routing example and `scripts/serve-vllm.sh` as a single-model vLLM launch helper. The example gateway has ten aliases matching the model registry. Each alias points to its own compatible backend URL; this does not magically host ten weights on one small GPU.
+
+1. Provision one model backend per model you want online, or use a hosted provider that exposes an OpenAI-compatible API. Model sizes vary greatly.
+2. Copy `scripts/gateway.env.example` into your private secret manager and replace every placeholder. Never commit real keys.
+3. Run `pip install 'litellm[proxy]'` and then `litellm --config scripts/litellm.config.yaml --port 4000` on a protected server.
+4. In Vercel set `KRUSHY_MODEL_BASE_URL` to the gateway URL ending in `/v1`, `KRUSHY_MODEL_API_KEY` to the gateway master key, and `KRUSHY_MODEL_MAP` to the JSON in `model-map.example.json`.
+
+Only configure model aliases that your backends really serve. The example lists all ten for a complete setup; unset backends must be removed from the LiteLLM config or supplied with valid compatible endpoints before starting it. Secure the gateway with authentication, TLS and network restrictions.
