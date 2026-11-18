@@ -6,7 +6,7 @@ export async function GET() {
   const connected = MODEL_CATALOG.map((m) => ({
     ...m,
     configured: Boolean(map[m.id]),
-    tag: m.plan === "pro" ? (process.env.KRUSHY_PRO_PREVIEW === "true" ? (map[m.id] ? "PRO PREVIEW · ROUTE CONFIGURED" : "PRO PREVIEW · PROVIDER NOT CONNECTED") : (map[m.id] ? "PRO PLAN · UPGRADE REQUIRED" : "PRO PLAN · UPGRADE + PROVIDER SETUP REQUIRED")) : map[m.id] ? "FREE ACCESS TIER · ROUTE CONFIGURED · API COST MAY APPLY" : "FREE ACCESS TIER · PROVIDER NOT CONNECTED",
+    tag: m.plan === "pro" ? (process.env.KRUSHY_PRO_PREVIEW === "true" ? (map[m.id] ? "PRO PREVIEW · ROUTE CONFIGURED" : "PRO PREVIEW · PROVIDER NOT CONNECTED") : (map[m.id] ? "PRO PLAN · UPGRADE REQUIRED" : "PRO PLAN · UPGRADE + PROVIDER SETUP REQUIRED")) : map[m.id] ? "FREE ROUTE · $0 MODEL COST · RATE LIMITED" : "FREE ROUTE · PROVIDER NOT CONNECTED",
   }));
   const chatCount = connected.filter((m) => (m.category === "chat" || m.category === "both") && m.configured).length;
   const codeCount = connected.filter((m) => (m.category === "code" || m.category === "both") && m.configured).length;
