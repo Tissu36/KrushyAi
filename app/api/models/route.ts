@@ -5,8 +5,8 @@ export async function GET() {
   const map = getConfiguredModelMap();
   const connected = MODEL_CATALOG.map((m) => ({
     ...m,
-    configured: m.plan === "free" && Boolean(map[m.id]),
-    tag: m.plan === "pro" ? "PRO · Upgrade required" : map[m.id] ? "FREE · Connected" : "FREE · Not configured",
+    configured: Boolean(map[m.id]),
+    tag: m.plan === "pro" ? (process.env.KRUSHY_PRO_PREVIEW === "true" ? "PRO · Preview enabled" : "PRO · Upgrade required") : map[m.id] ? "FREE · Connected" : "FREE · Not configured",
   }));
   const chatCount = connected.filter((m) => m.category === "chat" && m.configured).length;
   const codeCount = connected.filter((m) => m.category === "code" && m.configured).length;
@@ -20,7 +20,8 @@ export async function GET() {
       free: { dailyMessageLimit: 20, unlimitedMessages: false, modelCount: 3 },
       pro: { modelCount: MODEL_CATALOG.filter((m) => m.plan === "pro").length + 1, unlimitedMessages: true, dailyMessageLimit: null },
       accountLimitActive: false,
-      accountLimitNote: "Account-based daily limits activate after authentication and persistent usage storage are configured.",
+      accountLimitNote: "The current preview uses a browser-local daily counter. Secure account-wide limits require authentication and persistent usage storage.",
+      proPreviewEnabled: process.env.KRUSHY_PRO_PREVIEW === "true",
     },
     counts: { chat: chatCount, code: codeCount },
     maxReady: false,
