@@ -28,7 +28,11 @@ export function getConfiguredModelMap(): Record<string, string> {
     const parsed = JSON.parse(process.env.KRUSHY_MODEL_MAP || "{}");
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
     const allowed = new Set(MODEL_CATALOG.map((m) => m.id));
-    return Object.fromEntries(Object.entries(parsed).filter(([key, value]) => allowed.has(key) && typeof value === "string" && value.trim()));
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (allowed.has(key) && typeof value === "string" && value.trim()) result[key] = value.trim();
+    }
+    return result;
   } catch {
     return {};
   }
