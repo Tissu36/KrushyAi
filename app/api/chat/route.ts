@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 type MessageContent = string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }>;
 type ChatMessage = { role: "system" | "user" | "assistant"; content: MessageContent };
 const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
-const MAX_TOTAL_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const MAX_TOTAL_IMAGE_BYTES = 3 * 1024 * 1024;
 const IMAGE_SLOTS = new Set(["slot-3-multimodal", "slot-7-vision"]);
 
 function validateMessages(input: unknown): { messages: ChatMessage[]; hasImages: boolean } | null {
@@ -219,26 +219,45 @@ function responseHeaders(modelUsed: string, fallbackAttempted: boolean) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const messages = Array.isArray(body.messages) ? body.messages.slice(-24) : [];
-    if (!messages.length || !messages.every((m: any) => ["user", "assistant"].includes(m?.role) && typeof m?.content === "string")) {
+    const body: unknown = await req.json();
+    if (!body || typeof body !== "object" || !("messages" in body)) {
       return Response.json({ error: "Send a valid chat message first." }, { status: 400 });
     }
+    const requestBody = body as { messages?: unknown; model?: unknown; mode?: unknown };
+    const validated = validateMessages(requestBody.messages);
+    if (!validated) {
+      return Response.json({ error: "Send valid messages. Images must be PNG, JPEG, WebP, or GIF and stay within the 3 MB image limit." }, { status: 400 });
+    }
 
+    const messages = validated.messages;
+    const hasImages = validated.hasImages;
     const map = getConfiguredModelMap();
-    const selected = typeof body.model === "string" ? body.model : "krushy-max";
-    const category = body.mode === "code" ? "code" : "chat";
-    const entry = MODEL_CATALOG.find((m) => m.id === selected && m.category === category);
-    if (selected !== "krushy-max" && !entry) return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
-    if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) return Response.json({ error: "Image input is available on KRUSHY Multimodal (Slot 3), KRUSHY Vision (Slot 7), or KRUSHY MAX. Switch to a vision-capable slot and retry." }, { status: 400 });
+    const selected = typeof requestBody.model === "string" ? requestBody.model : "krushy-max";
+    const category = requestBody.mode === "code" ? "code" : "chat";
+    const entry = MODEL_CATALOG.find((model) => model.id === selected && model.category === category);
+
+    if (selected !== "krushy-max" && !entry) {
+      return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
+    }
+    if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) {
+      return Response.json({ error: "Image input is available on KRUSHY Multimodal (Slot 3), KRUSHY Vision (Slot 7), or KRUSHY MAX. Switch to a vision-capable slot and retry." }, { status: 400 });
+    }
 
     if (selected === "krushy-max") {
-      const eligible = MODEL_CATALOG.filter((m) => m.category === category && map[m.id]);
-      const candidates = (hasImages ? eligible.filter((m) => IMAGE_SLOTS.has(m.id)) : eligible).slice(0, 5);
-      if (candidates.length < (hasImages ? 1 : 2)) return Response.json({ error: hasImages ? "KRUSHY MAX needs at least one configured vision-capable model (Slot 3 or Slot 7) to process images." : `KRUSHY MAX needs at least two configured ${category} models. Add model IDs to KRUSHY_MODEL_MAP in Vercel.` }, { status: 503 });
+      const eligible = MODEL_CATALOG.filter((model) => model.category === category && map[model.id]);
+      const candidates = (hasImages ? eligible.filter((model) => IMAGE_SLOTS.has(model.id)) : eligible).slice(0, 5);
+      if (candidates.length < (hasImages ? 1 : 2)) {
+        return Response.json({
+          error: hasImages
+            ? "KRUSHY MAX needs at least one configured vision-capable model (Slot 3 or Slot 7) to process images."
+            : `KRUSHY MAX needs at least two configured ${category} models. Add model IDs to KRUSHY_MODEL_MAP in Vercel.`,
+        }, { status: 503 });
+      }
 
       const lastMessage = messages[messages.length - 1];
-      const userPrompt = typeof lastMessage.content === "string" ? lastMessage.content : lastMessage.content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
+      const userPrompt = typeof lastMessage.content === "string"
+        ? lastMessage.content
+        : lastMessage.content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
       const previous = messages.slice(0, -1);
       const outputs = await Promise.allSettled(candidates.map(async (model) => {
         const result = await completeWithFailover(model, map[model.id], [
@@ -248,27 +267,43 @@ export async function POST(req: NextRequest) {
         ], req.signal, false);
         return { name: model.name, answer: result.value as string, fallbackAttempted: result.fallbackAttempted };
       }));
-      const usable = outputs.filter((x): x is PromiseFulfilledResult<{ name: string; answer: string; fallbackAttempted: boolean }> => x.status === "fulfilled").map((x) => x.value);
-      if (!usable.length) return Response.json({ error: "None of the KRUSHY MAX specialist models responded. Check your model gateway and model IDs." }, { status: 502 });
+      const usable = outputs
+        .filter((result): result is PromiseFulfilledResult<{ name: string; answer: string; fallbackAttempted: boolean }> => result.status === "fulfilled")
+        .map((result) => result.value);
+      if (!usable.length) {
+        return Response.json({ error: "None of the KRUSHY MAX specialist models responded. Check your model gateway and model IDs." }, { status: 502 });
+      }
 
       const judgeEntry = candidates[0];
-      const judge = map[judgeEntry.id];
-      const synthesis = await completeWithFailover(judgeEntry, judge, [
-        { role: "system", content: "You are KRUSHY MAX, the final synthesis intelligence. " + buildAgentInstructions(category, "KRUSHY MAX") + " Compare the independent specialist drafts, identify errors and contradictions, keep the strongest reasoning, and produce one coherent, accurate, complete answer. Do not simply concatenate drafts or invent consensus. Mention uncertainty when the drafts do not establish an answer." },
-        { role: "user", content: `Workspace: ${category}\nUser request:\n${userPrompt}\n\nIndependent specialist drafts:\n${usable.map((x, i) => `DRAFT ${i + 1} — ${x.name}\n${x.answer}`).join("\n\n")}` },
+      const synthesis = await completeWithFailover(judgeEntry, map[judgeEntry.id], [
+        {
+          role: "system",
+          content: "You are KRUSHY MAX, the final synthesis intelligence. " + buildAgentInstructions(category, "KRUSHY MAX") + " Compare the independent specialist drafts, identify errors and contradictions, keep the strongest reasoning, and produce one coherent, accurate, complete answer. Do not simply concatenate drafts or invent consensus. Mention uncertainty when the drafts do not establish an answer.",
+        },
+        {
+          role: "user",
+          content: `Workspace: ${category}\nUser request:\n${userPrompt}\n\nIndependent specialist drafts:\n${usable.map((item, index) => `DRAFT ${index + 1} — ${item.name}\n${item.answer}`).join("\n\n")}`,
+        },
       ], req.signal, false);
-      return sse(synthesis.value as string, `krushy-max:${synthesis.modelUsed}`, synthesis.fallbackAttempted || usable.some((item) => item.fallbackAttempted));
+
+      const fallbackAttempted = synthesis.fallbackAttempted || usable.some((item) => item.fallbackAttempted);
+      return sse(synthesis.value as string, `krushy-max:${synthesis.modelUsed}`, fallbackAttempted);
     }
 
-    if (!entry || !map[entry.id]) return Response.json({ error: `${entry?.name || "This model"} is not connected yet. Configure it in KRUSHY_MODEL_MAP and make sure your model gateway serves it.` }, { status: 503 });
+    if (!entry || !map[entry.id]) {
+      return Response.json({
+        error: `${entry?.name || "This model"} is not connected yet. Configure it in KRUSHY_MODEL_MAP and make sure your model gateway serves it.`,
+      }, { status: 503 });
+    }
+
     const sharedGuidance = " Be candid and helpful, avoid unnecessary refusals, be accurate about uncertainty, and do not claim to have executed code, browsed, or changed files unless you actually have. Do not provide actionable instructions for serious real-world harm or privacy invasion.";
     const result = await completeWithFailover(entry, map[entry.id], [
       { role: "system", content: entry.systemPrompt + "\n\n" + buildAgentInstructions(category, entry.name) + sharedGuidance },
       ...messages,
-    ], req.signal, true) as CompletionResult;
+    ], req.signal, true);
 
-    // The upstream stream is returned untouched. Once its body starts flowing, we
-    // never splice in another model; mid-stream failures terminate this response.
+    // The upstream stream is returned untouched. If it fails after streaming starts,
+    // the connection ends; output from a second model is never spliced into it.
     return new Response((result.value as Response).body, {
       headers: responseHeaders(result.modelUsed, result.fallbackAttempted),
     });
