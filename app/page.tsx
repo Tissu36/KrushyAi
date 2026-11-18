@@ -170,9 +170,14 @@ export default function Home() {
         const res=await fetch("/api/pro/subscribe",{method:"POST",headers:{"Content-Type":"application/json","x-supabase-access-token":session.access_token},body:JSON.stringify({temporaryToken})});
         const result=await res.json().catch(()=>({}));
         if(!res.ok)throw new Error(result.error||"Moneris could not create the subscription.");
-        setProActive(true);
+        setProActive(Boolean(result.pro));
         setCheckoutOpen(false);
-        setProMessage("KRUSHY Pro is active. Your 7 Pro profiles are unlocked.");
+        if(result.pro){
+          setProMessage("KRUSHY Pro is active. Your 7 Pro profiles are unlocked.");
+        }else{
+          await refreshProStatus();
+          setProMessage(result.message||"Your subscription is awaiting Moneris confirmation. Pro access will unlock after the verified payment status arrives.");
+        }
       }catch(e){setProMessage(e instanceof Error?e.message:"Could not finish Moneris checkout.");}
       finally{setCheckoutBusy(false);}
     }
