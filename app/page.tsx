@@ -135,7 +135,7 @@ export default function Home() {
         return;
       }
       const apiMessages=next.map(m=>m.imageUrl?{role:m.role,content:[{type:"text",text:m.content},{type:"image_url",image_url:{url:m.imageUrl}}]}:{role:m.role,content:m.content});
-      const openrouterKey=getOpenRouterApiKey();const res=await fetch("/api/chat",{method:"POST",headers:{...(openrouterKey?{Authorization:"Bearer "+openrouterKey}:{}),"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
+      const openrouterKey=getOpenRouterApiKey();const supabase=getSupabaseBrowserClient();const {data:{session}}=supabase?await supabase.auth.getSession():{data:{session:null}};const res=await fetch("/api/chat",{method:"POST",headers:{...(openrouterKey?{Authorization:"Bearer "+openrouterKey}:{}),...(session?.access_token?{"x-supabase-access-token":session.access_token}:{}),"Content-Type":"application/json"},body:JSON.stringify({model,mode,messages:apiMessages})});
       if(!res.ok){const d=await res.json().catch(()=>({}));throw new Error(d.error||"Request failed");}
       if(!res.body)throw new Error("Streaming is not supported by this response.");
       const reader=res.body.getReader();const decoder=new TextDecoder();let answer="";
