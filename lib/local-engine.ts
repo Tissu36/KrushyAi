@@ -8,6 +8,14 @@ const MODEL_IDS: Record<string, string> = {
 
 let engine: MLCEngineInterface | null = null;
 let loadedModel = "";
+let creating: Promise<MLCEngineInterface> | null = null;
+
+// Clear stale WebGPU references after a tab is suspended or the GPU device is reset.
+export function resetLocalEngine() {
+  engine = null;
+  loadedModel = "";
+  creating = null;
+}
 
 export async function getLocalEngine(
   slot: string,
@@ -22,16 +30,28 @@ export async function getLocalEngine(
   const modelId = MODEL_IDS[slot];
   if (!modelId) throw new Error("Unknown local model selected.");
   if (engine && loadedModel === modelId) return engine;
+  if (creating) {
+    const pending = await creating;
+    if (loadedModel === modelId) return pending;
+  }
 
-  onProgress("Downloading model files for the first time. Keep this tab open…");
-  const nextEngine = await CreateMLCEngine(modelId, {
+  onProgress("Preparing secure on-device model download…");
+  creating = CreateMLCEngine(modelId, {
     initProgressCallback: (report) => {
       const percent = Math.round((report.progress || 0) * 100);
-      onProgress(report.text || `Loading local model… ${percent}%`);
+      onProgress(report.text || `Downloading model files… ${percent}%`);
     },
   });
-  engine = nextEngine;
-  loadedModel = modelId;
-  onProgress("Local model ready.");
-  return nextEngine;
+  try {
+    const nextEngine = await creating;
+    engine = nextEngine;
+    loadedModel = modelId;
+    onProgress("Model downloaded and ready on this device.");
+    return nextEngine;
+  } catch (error) {
+    resetLocalEngine();
+    throw error;
+  } finally {
+    creating = null;
+  }
 }
