@@ -6,7 +6,7 @@ type Message = { role:"user"|"assistant"; content:string };
 const starters = ["Build me a responsive website","Explain this code and fix the bugs","Create a React component","Help me plan my next project"];
 export default function Home() {
   const [models,setModels] = useState<Model[]>([]);
-  const [model,setModel] = useState("openai/gpt-oss-120b");
+  const [model,setModel] = useState("krushy-omega");
   const [mode,setMode] = useState<"chat"|"code">("chat");
   const [messages,setMessages] = useState<Message[]>([]);
   const [input,setInput] = useState("");
@@ -18,7 +18,7 @@ export default function Home() {
   const [history,setHistory] = useState<string[]>([]);
   const bottom = useRef<HTMLDivElement>(null);
   const selected = useMemo(()=>models.find(m=>m.id===model),[models,model]);
-  useEffect(()=>{ fetch("/api/models").then(r=>r.json()).then(d=>{setModels(d.models||[])}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); } catch {} },[]);
+  useEffect(()=>{ fetch("/api/models").then(r=>r.json()).then(d=>{const available=d.models||[];setModels(available);if(available.length)setModel(available[0].id)}).catch(()=>{}); try { const h=JSON.parse(localStorage.getItem("krushy-history")||"[]"); setHistory(h); } catch {} },[]);
   useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"});},[messages,busy]);
   useEffect(()=>{if(messages.length){const h=[messages.filter(m=>m.role==="user").at(-1)?.content||"New chat",...history].slice(0,12);setHistory(h);localStorage.setItem("krushy-history",JSON.stringify(h));}},[messages.length]);
   async function send(text=input) {
@@ -51,14 +51,14 @@ export default function Home() {
       <button className="nav" onClick={()=>setError("Voice mode: use the microphone beside the message box to talk, then tap the speaker on an answer.")}><span>◖</span> Voice chat</button>
       <div className="side-label history-label">RECENT CHATS</div>
       <div className="history">{history.map((h,i)=><button key={i} onClick={()=>{setInput(h);setSidebar(false)}}>◦ <span>{h}</span></button>)}</div>
-      <div className="side-bottom"><div className="profile"><div className="avatar">K</div><div><b>KRUSHY</b><small>Personal workspace</small></div><span className="online-dot"/></div><div className="powered">POWERED BY GROQ AI</div></div>
+      <div className="side-bottom"><div className="profile"><div className="avatar">K</div><div><b>KRUSHY</b><small>Personal workspace</small></div><span className="online-dot"/></div><div className="powered">KRUSHY MODEL FAMILY</div></div>
     </aside>
     <section className="main">
       <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"Code Studio":"AI Chat"}</b></div><div className="top-right"><span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
       <div className="content">
-        <div className="hero-kicker"><span/> KRUSHY AI V1 <span className="line"/></div>
+        <div className="hero-kicker"><span/> KRUSHY Ω · MODEL LAB <span className="line"/></div>
         <select className="mobile-model" value={model} onChange={e=>setModel(e.target.value)} aria-label="Choose AI model">{models.map(m=><option key={m.id} value={m.id}>{m.name} — {m.maker}</option>)}</select>
-        {messages.length===0?<div className="welcome"><div className="orb"><div className="orb-core">K</div><i/><i/><i/></div><h1>{mode==="code"?"LET'S BUILD.":"WHAT'S ON YOUR MIND?"}</h1><p>{mode==="code"?"Your AI coding partner. Plan, write, debug and understand code.":"One workspace. Open-weight AI powered by Groq. Your next big idea starts here."}</p>
+        {messages.length===0?<div className="welcome"><div className="orb"><div className="orb-core">K</div><i/><i/><i/></div><h1>{mode==="code"?"LET'S BUILD.":"WHAT'S ON YOUR MIND?"}</h1><p>{mode==="code"?"Your AI coding partner. Plan, write, debug and understand code.":"One workspace. Two original KRUSHY models, trained for conversation and code."}</p>
           <div className="model-strip"><span className="model-pulse"/> SELECTED MODEL <b>{selected?.name||"GPT-OSS 120B"}</b><span className="model-maker">{selected?.maker||"OpenAI · Groq"}</span></div>
           <div className="quick-grid">{(mode==="code"?["Build a full website","Debug my code","Explain a function","Design an app UI"]:starters).map((s,i)=><button key={s} className="quick" onClick={()=>send(s)}><span>{["↗","⌘","✳","◇"][i]}</span>{s}<b>↗</b></button>)}</div>
         </div>:<div className="conversation">{messages.map((m,i)=><article className={`message ${m.role}`} key={i}><div className="message-avatar">{m.role==="user"?"YOU":"K"}</div><div className="message-body"><div className="message-head">{m.role==="user"?"YOU":"KRUSHY AI"}{m.role==="assistant"&&<button className="speak" onClick={()=>speak(m.content)}>▶ Listen</button>}</div><div className="message-text">{m.content||" "}</div></div></article>)}{busy&&messages.at(-1)?.role==="user"&&<div className="thinking"><span/> KRUSHY AI IS THINKING</div>}<div ref={bottom}/></div>}
