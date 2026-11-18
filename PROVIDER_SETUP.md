@@ -1,73 +1,104 @@
-# KRUSHYAI · OpenRouter setup
+# KRUSHYAI · OpenRouter + Pro billing setup
 
-KRUSHYAI sends model requests from its Next.js server through the official OpenRouter TypeScript SDK. Your API key is never sent to the browser and must never be committed to GitHub.
+KRUSHYAI supports **per-user OpenRouter OAuth** for cloud inference. Each user connects their own OpenRouter account; paid model usage is billed to that OpenRouter account. A server-side `OPENROUTER_API_KEY` remains an optional fallback for development/admin use.
 
-## 1. Create an API key
+## OpenRouter user connection
 
-Create a key at https://openrouter.ai/keys.
+The KRUSHYAI UI uses OpenRouter OAuth with PKCE. Users click **Connect OpenRouter**, authorize on OpenRouter, and return to KRUSHYAI.
 
-## 2. Add it to Vercel
+Current free profiles use live `:free` routes when available. OpenRouter currently lists 50 free-model requests/day for a free account and 20 requests/minute; KRUSHYAI also applies its own workspace quota. Paid profiles use the user's OpenRouter credits/billing. Verify current model availability before changing slugs.
 
-In Vercel, open **krushy-ai → Settings → Environment Variables** and add:
+## Optional server fallback
+
+Add this only if you want KRUSHYAI to have a server-side fallback:
 
 | Name | Value | Environments |
 | --- | --- | --- |
-| `OPENROUTER_API_KEY` | Your private OpenRouter key | Production, Preview, Development |
+| `OPENROUTER_API_KEY` | Private OpenRouter key | Production, Preview, Development |
 
-Do not use a `NEXT_PUBLIC_` prefix. Do not put the key in source code, GitHub, or a browser setting.
+Never use a `NEXT_PUBLIC_` prefix for this key and never commit it.
 
-## 3. Configure real model slugs
+## KRUSHY model overrides
 
-OpenRouter model IDs use the exact `provider/model` slug shown at https://openrouter.ai/models.
+OpenRouter model IDs use the exact `provider/model` slug shown in the current OpenRouter catalog. KRUSHYAI supports optional `KRUSHY_MODEL_MAP` JSON overrides.
 
-KRUSHYAI uses `KRUSHY_MODEL_MAP` for optional per-profile overrides. Set it as a JSON object in Vercel when a profile's catalog default is unavailable. Example:
+Example:
 
 ```json
 {
-  "slot-1-flagship": "anthropic/claude-opus-5.5",
-  "slot-5-fast": "openai/gpt-6.2-sol"
+  "slot-4-opus": "meta-llama/llama-4-maverick",
+  "slot-5-fable": "qwen/qwen4-max",
+  "slot-10-max": "deepseek/deepseek-v4-pro-0813"
 }
 ```
 
-Use slugs that actually appear in the OpenRouter model catalog and are enabled for your account. The example is illustrative; verify each slug before using it. Existing per-environment overrides remain in effect.
+## Supabase
 
-## 4. Redeploy and test
+Required server/client environment variables:
 
-After saving the key, redeploy the project (or push a new commit). Open KRUSHYAI, select a connected model profile, and send:
+| Name | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser/auth key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only subscription writes |
 
-`Reply with exactly: OpenRouter is connected.`
+Never expose the service-role key to the browser.
 
-A successful response confirms the full browser → KRUSHYAI server → OpenRouter → model → browser path.
+## Moneris Pro billing
 
-## Local development
+KRUSHY Pro uses Moneris recurring subscriptions. Moneris Hosted Tokenization keeps card data inside a Moneris-controlled iframe and returns a temporary token to KRUSHYAI; KRUSHYAI sends that token server-side to create the recurring subscription.
 
-Create a local `.env.local` file (never commit it) containing:
+Moneris requires a merchant account and a Hosted Tokenization profile. Create/configure the profile in the Merchant Resource Center and register the KRUSHYAI source domain.
 
-```bash
-OPENROUTER_API_KEY=your_private_key_here
-```
+Required Vercel variables:
 
-Then run:
+| Name | Purpose |
+| --- | --- |
+| `MONERIS_MERCHANT_ID` | 13-character merchant ID |
+| `MONERIS_API_KEY` | Server-only Moneris API key |
+| `MONERIS_API_BASE_URL` | `https://api.sb.moneris.io` for QA/testing |
+| `MONERIS_API_VERSION` | Current Moneris API version used by the endpoint |
+| `MONERIS_CALLBACK_URL` | `https://krushy-ai.vercel.app/api/pro/webhook/moneris` |
+| `MONERIS_WEBHOOK_SECRET` | Optional secret checked by the KRUSHY webhook |
+| `KRUSHY_PRO_MONTHLY_CAD` | Your approved monthly CAD price |
+| `NEXT_PUBLIC_MONERIS_HOSTED_TOKEN_PROFILE_ID` | Hosted Tokenization profile ID |
+| `NEXT_PUBLIC_MONERIS_ENV` | `qa` or `production` |
 
-```bash
-npm install
-npm run dev
-```
+**Do not enable production billing until the adult/legal merchant account holder has completed Moneris onboarding and testing.**
 
-Open http://localhost:3000.
+### QA checkout
 
-## Errors
+Use the Moneris QA Merchant Resource Center and QA Hosted Tokenization host while testing:
 
-- **503 / key not configured:** add `OPENROUTER_API_KEY` to the Vercel environment and redeploy.
-- **401:** the key is invalid, revoked, or copied incorrectly.
-- **402:** OpenRouter credits or spend limit are insufficient.
-- **403:** the account cannot use the selected model.
-- **404:** the configured model slug does not exist.
-- **429:** rate limit reached; wait and retry.
-- **5xx:** OpenRouter or the upstream model provider is temporarily unavailable.
+`https://esqa.moneris.com/HPPtoken/index.php`
 
-## Billing and access
+The KRUSHY UI sends `tokenize` to the iframe and accepts messages only from the matching Moneris origin.
 
-KRUSHY Free and KRUSHY Pro are KRUSHYAI workspace tiers. They do not make upstream inference free. OpenRouter charges according to the selected model's current pricing and your account settings. Set a spend limit in OpenRouter before testing paid models.
+### Production checkout
 
-The KRUSHY Pro preview switch is not subscription billing or production entitlement enforcement.
+After QA testing and store activation, switch:
+
+- `NEXT_PUBLIC_MONERIS_ENV=production`
+- `MONERIS_API_BASE_URL=https://api.moneris.io` (use the production base URL supplied by your Moneris account/docs)
+- production Hosted Tokenization profile ID
+- production merchant credentials
+
+Moneris documents recurring subscriptions with `paymentInformation=FIRST` and `paymentIndicator=RECURRING`. The initial subscription request can omit `oneTimeAmount` so Moneris validates the payment method rather than charging the recurring amount immediately.
+
+## Test
+
+1. Sign in to KRUSHYAI.
+2. Connect OpenRouter.
+3. Select a FREE profile and send a message.
+4. Sign in and open **Start KRUSHY PRO**.
+5. In QA, enter a Moneris test card in the hosted frame.
+6. Submit the tokenization request.
+7. Confirm Supabase `subscriptions.status=active`.
+8. Confirm a PRO profile is unlocked.
+
+## Important
+
+- Never store raw card numbers, CVD, or expiry in KRUSHYAI.
+- Never commit Moneris or OpenRouter secrets.
+- The hosted iframe is intentionally controlled by Moneris.
+- If a model slug becomes unavailable, update `KRUSHY_MODEL_MAP` rather than hardcoding a replacement into user credentials.
