@@ -13,7 +13,8 @@
     "next": "^16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "@supabase/supabase-js": "^2.57.0"
+    "@supabase/supabase-js": "^2.57.0",
+    "@openrouter/sdk": "^1.5.103"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
