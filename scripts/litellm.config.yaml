@@ -1,0 +1,54 @@
+model_list:
+  - model_name: gpt-oss-20b
+    litellm_params:
+      model: openai/openai/gpt-oss-20b
+      api_base: os.environ/GPT_OSS_20B_API_BASE
+      api_key: os.environ/GPT_OSS_20B_API_KEY
+  - model_name: qwen-general
+    litellm_params:
+      model: openai/Qwen/Qwen3.8-27B
+      api_base: os.environ/QWEN_GENERAL_API_BASE
+      api_key: os.environ/QWEN_GENERAL_API_KEY
+  - model_name: gemma-general
+    litellm_params:
+      model: openai/google/gemma-4-31B-it
+      api_base: os.environ/GEMMA_GENERAL_API_BASE
+      api_key: os.environ/GEMMA_GENERAL_API_KEY
+  - model_name: llama4-scout
+    litellm_params:
+      model: openai/meta-llama/Llama-4-Scout-17B-16E-Instruct
+      api_base: os.environ/LLAMA4_SCOUT_API_BASE
+      api_key: os.environ/LLAMA4_SCOUT_API_KEY
+  - model_name: deepseek-v3
+    litellm_params:
+      model: openai/deepseek-ai/DeepSeek-V3
+      api_base: os.environ/DEEPSEEK_V3_API_BASE
+      api_key: os.environ/DEEPSEEK_V3_API_KEY
+  - model_name: qwen-coder-next
+    litellm_params:
+      model: openai/Qwen/Qwen3-Coder-Next
+      api_base: os.environ/QWEN_CODER_NEXT_API_BASE
+      api_key: os.environ/QWEN_CODER_NEXT_API_KEY
+  - model_name: qwen-coder-30b
+    litellm_params:
+      model: openai/Qwen/Qwen3-Coder-30B-A3B-Instruct
+      api_base: os.environ/QWEN_CODER_30B_API_BASE
+      api_key: os.environ/QWEN_CODER_30B_API_KEY
+  - model_name: deepseek-coder-lite
+    litellm_params:
+      model: openai/deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct
+      api_base: os.environ/DEEPSEEK_CODER_LITE_API_BASE
+      api_key: os.environ/DEEPSEEK_CODER_LITE_API_KEY
+  - model_name: gpt-oss-code
+    litellm_params:
+      model: openai/openai/gpt-oss-20b
+      api_base: os.environ/GPT_OSS_20B_API_BASE
+      api_key: os.environ/GPT_OSS_20B_API_KEY
+  - model_name: gemma-code
+    litellm_params:
+      model: openai/google/gemma-4-31B-it
+      api_base: os.environ/GEMMA_GENERAL_API_BASE
+      api_key: os.environ/GEMMA_GENERAL_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
