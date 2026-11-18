@@ -262,13 +262,14 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Send valid messages. Images must be PNG, JPEG, WebP, or GIF and stay within the 3 MB image limit." }, { status: 400 });
     }
 
-    if (!process.env.OPENROUTER_API_KEY) {
-      return Response.json({
-        error: "OpenRouter is not connected yet. Create a key at https://openrouter.ai/keys, then add it to Vercel as OPENROUTER_API_KEY.",
-      }, { status: 503 });
+    const authHeader = req.headers.get("authorization");
+    const userOpenRouterKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    const apiKey = userOpenRouterKey || process.env.OPENROUTER_API_KEY || "";
+    if (!apiKey) {
+      return Response.json({ error: "Connect your OpenRouter account before sending a cloud-model request." }, { status: 401 });
     }
 
-    const authHeader = req.headers.get("authorization");\n    const userOpenRouterKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";\n    const apiKey = userOpenRouterKey || process.env.OPENROUTER_API_KEY || "";\n    if (!apiKey) {\n      return Response.json({ error: "Connect your OpenRouter account before sending a cloud-model request." }, { status: 401 });\n    }\n\n    const messages = validated.messages;
+    const messages = validated.messages;
     const hasImages = validated.hasImages;
     const map = getConfiguredModelMap();
     const selected = typeof requestBody.model === "string" ? requestBody.model : "slot-10-max";
