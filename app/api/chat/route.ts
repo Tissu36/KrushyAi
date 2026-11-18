@@ -262,6 +262,12 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Send valid messages. Images must be PNG, JPEG, WebP, or GIF and stay within the 3 MB image limit." }, { status: 400 });
     }
 
+    if (!process.env.OPENROUTER_API_KEY) {
+      return Response.json({
+        error: "OpenRouter is not connected yet. Create a key at https://openrouter.ai/keys, then add it to Vercel as OPENROUTER_API_KEY.",
+      }, { status: 503 });
+    }
+
     const messages = validated.messages;
     const hasImages = validated.hasImages;
     const map = getConfiguredModelMap();
