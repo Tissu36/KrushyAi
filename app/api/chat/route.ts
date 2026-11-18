@@ -243,7 +243,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
     }
     if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) {
-      return Response.json({ error: "Image input is available on KRUSHY Multimodal (Slot 3), KRUSHY Vision (Slot 7), or KRUSHY MAX. Switch to a vision-capable slot and retry." }, { status: 400 });
+      return Response.json({ error: "Image input is available on KRUSHY Gemma (FREE), KRUSHY Multimodal (PRO), KRUSHY Vision (PRO), or KRUSHY MAX (PRO). Switch to a vision-capable slot and retry." }, { status: 400 });
     }
 
     if (selected === "krushy-max") {
