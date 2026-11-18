@@ -26,7 +26,6 @@ export const MODEL_CATALOG: ModelEntry[] = [
 
 export function getConfiguredModelMap(): Record<string, string> {
   // OpenRouter credentials stay server-side. No base URL or browser key is needed.
-  if (!process.env.OPENROUTER_API_KEY) return {};
   const providerPrefix: Record<string, string> = {
     Anthropic: "anthropic",
     OpenAI: "openai",
