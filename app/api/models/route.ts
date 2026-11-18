@@ -8,8 +8,8 @@ export async function GET() {
     configured: Boolean(map[m.id]),
     tag: m.plan === "pro" ? (process.env.KRUSHY_PRO_PREVIEW === "true" ? "PRO · Preview enabled" : "PRO · Upgrade required") : map[m.id] ? "FREE · Connected" : "FREE · Not configured",
   }));
-  const chatCount = connected.filter((m) => m.category === "chat" && m.configured).length;
-  const codeCount = connected.filter((m) => m.category === "code" && m.configured).length;
+  const chatCount = connected.filter((m) => (m.category === "chat" || m.category === "both") && m.configured).length;
+  const codeCount = connected.filter((m) => (m.category === "code" || m.category === "both") && m.configured).length;
   const models = [
     { id: "krushy-max", name: "KRUSHY MAX", maker: "KRUSHY", task: "Multi-model consensus + synthesis", category: "both", plan: "pro", configured: process.env.KRUSHY_PRO_PREVIEW === "true" && MODEL_CATALOG.some((m) => m.plan === "pro" && Boolean(map[m.id])), tag: process.env.KRUSHY_PRO_PREVIEW === "true" ? "PRO · Preview enabled" : "PRO · Upgrade required" },
     ...connected,
