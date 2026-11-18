@@ -4,7 +4,7 @@ import { MODEL_CATALOG, getConfiguredModelMap } from "@/lib/model-catalog";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 function sse(text: string) {
   const payload = JSON.stringify({ choices: [{ delta: { content: text } }] });
