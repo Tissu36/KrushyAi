@@ -34,3 +34,8 @@ Provider access, model IDs, prices and free quotas change. A model may require p
 - Keep API keys out of client code, commits, screenshots and chat messages.
 - Store credentials in Vercel environment variables or a dedicated secret manager.
 - Run code execution and browser automation in isolated worker services, never directly in the Next.js web process.
+
+
+## Provider setup
+
+See [provider integration and live model verification](docs/PROVIDER_INTEGRATION.md) for the gateway setup, secret handling, and smoke-test command. The 10-slot target is documented in [10_MODEL_LINEUP.md](docs/10_MODEL_LINEUP.md).
