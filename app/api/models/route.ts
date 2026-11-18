@@ -17,8 +17,8 @@ export async function GET() {
   return Response.json({
     models,
     plans: {
-      free: { dailyMessageLimit: 20, modelCount: 3 },
-      pro: { modelCount: MODEL_CATALOG.filter((m) => m.plan === "pro").length + 1 },
+      free: { dailyMessageLimit: 20, unlimitedMessages: false, modelCount: 3 },
+      pro: { modelCount: MODEL_CATALOG.filter((m) => m.plan === "pro").length + 1, unlimitedMessages: true, dailyMessageLimit: null },
       accountLimitActive: false,
       accountLimitNote: "Account-based daily limits activate after authentication and persistent usage storage are configured.",
     },
