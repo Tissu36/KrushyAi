@@ -2,7 +2,7 @@
 
 ## Recommended architecture for KRUSHY AI
 
-The current chat route speaks the OpenAI-compatible Chat Completions protocol. The lowest-friction way to add Anthropic, OpenAI, Google, and other providers without writing and maintaining three separate request stacks is to put a provider gateway such as **LiteLLM Proxy** behind the existing route. The application then calls one private gateway URL and maps stable KRUSHY slot IDs to gateway aliases.
+The current chat route speaks the OpenAI-compatible Chat Completions protocol. The free-only setup uses **OpenRouter** directly at `https://openrouter.ai/api/v1`; stable KRUSHY slot IDs map to OpenRouter model IDs ending in `:free`. No LiteLLM deployment or paid provider key is required for this setup.
 
 Alternative: use the **Vercel AI SDK** in the Next.js server route for native provider adapters and streaming. This is a good fit when provider-specific request features, multimodal inputs, or native tool calling must be exposed directly. The Google Gen AI JS SDK is another official option for Gemini Developer API and Vertex AI integrations.
 
@@ -37,12 +37,12 @@ Assistant responses expose `X-Krushy-Model-Used` and `X-Krushy-Fallback-Attempte
 
 ## Configure the gateway
 
-Set these as server-side environment variables (Vercel Project Settings or local `.env.local`):
+Set these as server-side environment variables (Vercel Project Settings or local `.env.local`). The repository's `.env.example` contains the ten free-only model IDs and fallback map:
 
 ```dotenv
-KRUSHY_MODEL_BASE_URL=https://your-private-litellm-host/v1
-KRUSHY_MODEL_API_KEY=your_gateway_key
-KRUSHY_MODEL_MAP={"slot-1-flagship":"provider/model-id","slot-2-writing":"provider/model-id"}
+KRUSHY_MODEL_BASE_URL=https://openrouter.ai/api/v1
+KRUSHY_MODEL_API_KEY=your_openrouter_api_key
+# Copy KRUSHY_MODEL_MAP and KRUSHY_MODEL_FALLBACK_MAP from .env.example
 ```
 
 The ten stable slot keys are `slot-1-flagship`, `slot-2-writing`, `slot-3-multimodal`, `slot-4-coding`, `slot-5-fast`, `slot-6-research`, `slot-7-vision`, `slot-8-agents`, `slot-9-math-science`, and `slot-10-backup`. Values are exact model aliases configured in the gateway. The catalog records preferred upstream IDs and fallback suggestions; the chat route derives conventional provider aliases from those suggestions and retries on eligible pre-stream failures. For custom gateway aliases, set KRUSHY_MODEL_FALLBACK_MAP. Never prefix secrets with `NEXT_PUBLIC_`, commit them, or paste them into chat.
@@ -73,3 +73,10 @@ Do not call a model "Connected" solely because an environment variable is presen
 ## Prompt and license notes
 
 Use public prompt repositories as research material, not as a source of proprietary API instructions to impersonate another vendor's model. The Claude prompt archive itself distinguishes claude.ai prompts from API behaviour. Review each repository's license and the original provider terms before copying content.
+
+
+## Free tier limits and Kimi note
+
+All ten example endpoints use OpenRouter model IDs ending in `:free`, which have $0 prompt and completion pricing and do not require purchasing credits. OpenRouter currently documents a free-account limit of 50 requests per day (and 20 requests per minute); individual upstream providers can impose stricter limits or availability changes. Do not promise unlimited usage or production uptime. Do not configure a paid model ID in the free-only map.
+
+Kimi's consumer app may offer a limited free allowance, but Kimi K3.1 Pro API access is pay-as-you-go. Slot 4 therefore uses free Cohere North Mini Code and Particle-1 endpoints as substitutes for the user's Kimi coding-agent target.
