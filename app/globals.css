@@ -255,3 +255,12 @@ button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px sol
  .mobile-card-bottom em{font:6px var(--mono);font-style:normal;padding:3px 4px;border:1px solid #6a4d2a;border-radius:4px;color:#f1c17e}
  .mobile-card-bottom em.zero{border-color:#345e43;color:#a8e6bc}
 }
+
+
+.checkout-panel{margin-top:12px;border:1px solid #3a2d33;border-radius:12px;background:linear-gradient(145deg,#14151b,#0d0e12);padding:12px}
+.checkout-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.checkout-head b{display:block;color:#f2f2f5;font:10px var(--mono);letter-spacing:1px}
+.checkout-head small{display:block;color:#9294a0;font-size:9px;line-height:1.5;margin-top:4px}
+.moneris-frame{display:block;width:100%;min-height:92px;height:120px;border:1px solid #343640;border-radius:8px;background:#fff;margin:8px 0 10px}
+.checkout-panel .account-primary{width:100%}
+@media(max-width:700px){.checkout-panel{padding:10px}.moneris-frame{height:130px}}
