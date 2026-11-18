@@ -24,8 +24,9 @@ const OPENAI_SDK = "https://github.com/openai/openai-node";
  * A model ID here is a target suggestion, not evidence that the user's provider
  * account can access it. Configure a real gateway alias and run scripts/verify-models.mjs.
  *
- * Fallbacks are operator-selected alternatives; the current gateway map accepts one
- * alias per slot and does not silently retry/fail over between providers.
+ * Fallbacks are public model IDs used to derive conventional gateway aliases. Custom
+ * LiteLLM aliases can be supplied with KRUSHY_MODEL_FALLBACK_MAP. Failover retries
+ * only HTTP 429/5xx responses received before streaming begins.
  */
 export const MODEL_CATALOG: ModelEntry[] = [
   {
@@ -163,7 +164,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     github: GOOGLE_SDK,
     modelId: "gemini-3.8-flash",
     fallbackModelIds: ["claude-sonnet-5"],
-    note: "Fallback target for routine requests. Configure an actually available alias; no automatic retry is implemented yet.",
+    note: "Fast primary for routine requests. If it returns HTTP 429/5xx before streaming starts, the route can fail over to the suggested Sonnet alias.",
     promptSources: [],
     promptSourceModels: ["KRUSHY original backup persona"],
     systemPrompt: "You are KRUSHY Backup, a concise and reliable assistant. Answer the user's question directly, prioritize correctness over flourish, and keep simple tasks short. If a request needs deeper research, coding tools, image input, or a capability you do not have, say so plainly and suggest the next practical step. Do not fabricate facts, sources, or actions. Be helpful, calm, and clear.",
