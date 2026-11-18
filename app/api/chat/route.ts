@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (selected === "krushy-max") {
       const candidates = MODEL_CATALOG.filter((m) => m.category === category && map[m.id]);
       if (candidates.length < 2) return Response.json({ error: `KRUSHY MAX needs at least two configured ${category} models. Add model IDs to KRUSHY_MODEL_MAP in Vercel.` }, { status: 503 });
-      const chosen = candidates.slice(0, 3);
+      const chosen = candidates.slice(0, 5);
       const userPrompt = messages[messages.length - 1].content;
       const previous = messages.slice(0, -1);
       const outputs = await Promise.allSettled(chosen.map(async (m) => ({
