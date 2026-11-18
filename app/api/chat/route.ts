@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
     const category = requestBody.mode === "code" ? "code" : "chat";
     const entry = MODEL_CATALOG.find((model) => model.id === selected && model.category === category);
 
-    if (selected === "krushy-max" || entry?.plan === "pro") {
+    if ((selected === "krushy-max" || entry?.plan === "pro") && process.env.KRUSHY_PRO_PREVIEW !== "true") {
       return Response.json({ error: "This is a KRUSHY PRO model. Pro access is not enabled for this account yet." }, { status: 403 });
     }
     if (selected !== "krushy-max" && !entry) {
