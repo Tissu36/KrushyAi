@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
           { role: "system", content: system + " Solve the user's request independently. Give your best answer, with no mention of other models." },
           ...previous,
           { role: "user", content: userPrompt },
-        ], req.signal, false) as Promise<string>,
+        ], req.signal, false) as string,
       })));
       const usable = outputs.filter((x): x is PromiseFulfilledResult<{name:string;answer:string}> => x.status === "fulfilled").map(x => x.value);
       if (!usable.length) return Response.json({ error: "None of the KRUSHY MAX specialist models responded. Check your model gateway and model IDs." }, { status: 502 });
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       const synthesis = await complete(judge, [
         { role: "system", content: "You are KRUSHY MAX, the final synthesis intelligence. You receive independent model drafts. Compare them, identify errors and contradictions, retain the strongest reasoning, and produce one coherent, accurate, complete answer. Do not mention internal model voting unless asked. If all drafts are weak or uncertain, say so rather than inventing." },
         { role: "user", content: `User request:\n${userPrompt}\n\nIndependent drafts:\n${usable.map((x,i)=>`DRAFT ${i+1} — ${x.name}\n${x.answer}`).join("\n\n")}` },
-      ], req.signal, false) as Promise<string>;
+      ], req.signal, false) as string;
       return sse(synthesis);
     }
 
