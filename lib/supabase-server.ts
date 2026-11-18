@@ -10,9 +10,9 @@ export function getSupabaseServerClient() {
 }
 
 export async function getUserFromRequest(req: Request) {
-  const auth = req.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) return null;
-  const token = auth.slice(7).trim();
+  const auth = req.headers.get("x-supabase-access-token") || req.headers.get("authorization");
+  if (!auth) return null;
+  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : auth.trim();
   if (!token) return null;
   const supabase = getSupabaseServerClient();
   if (!supabase) return null;
