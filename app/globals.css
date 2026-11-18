@@ -294,3 +294,17 @@ button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px sol
 .code-block code{font:inherit;white-space:pre}
 .model-confirmation{margin-top:14px}
 @media(max-width:700px){.shell:before{background-size:30px 30px}.orb{width:62px;height:62px;border-radius:15px}.code-block pre{font-size:10px;padding:11px}.message-body{padding:11px}}
+
+/* KRUSHYAI message typography */
+.message-text{overflow-wrap:anywhere;line-height:1.75}
+.message-paragraph{margin:0 0 13px;color:#e5e5e5;white-space:pre-wrap}
+.message-paragraph:last-child{margin-bottom:0}
+.message-heading{color:#fff;font-weight:800;letter-spacing:-.02em;margin:22px 0 9px}
+.message-heading:first-child{margin-top:0}
+.message-list{margin:8px 0 16px;padding-left:24px;color:#dedede}
+.message-list li{padding:3px 0 3px 4px}
+.message-quote{border-left:2px solid var(--red);margin:12px 0;padding:7px 14px;color:#bdbdbd;background:#ffffff05;border-radius:0 7px 7px 0}
+.inline-code{font: .92em var(--mono);color:#ff9ba1;background:#251316;border:1px solid #54252b;border-radius:4px;padding:2px 5px}
+.message-text a{color:#ff737c;text-decoration:underline;text-underline-offset:3px}
+.message-text a:hover{color:#fff}
+.plan-usage{line-height:1.55;overflow-wrap:anywhere}
