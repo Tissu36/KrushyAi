@@ -1,8 +1,9 @@
 import { CreateMLCEngine, type MLCEngineInterface } from "@mlc-ai/web-llm";
 
 const MODEL_IDS: Record<string, string> = {
-  "local-llama": "Llama-3.2-1B-Instruct-q4f16_1-MLC",
-  "local-gemma": "gemma3-1b-it-q4f16_1-MLC",
+  "local-fast": "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+  "local-code": "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+  "local-vision": "gemma3-1b-it-q4f16_1-MLC",
 };
 
 let engine: MLCEngineInterface | null = null;
