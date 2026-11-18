@@ -1,45 +1,31 @@
 # KRUSHY AI
 
-A responsive multi-provider AI workspace built with Next.js, React and TypeScript.
+A responsive AI workspace built with Next.js, React, TypeScript, and optional browser-local inference.
 
-## Features
-- Streaming AI chat with a server-side OpenAI-compatible model gateway
-- Model catalogue with separate chat and coding specialist personas
-- Shared Fable-inspired, all-task agent instruction layer for every configured model
-- Coding workspace with repository-engineering guidance
-- Browser speech recognition and speech synthesis (browser/device support required)
-- Mobile-first red-and-black interface
-- Provider keys remain server-side
+## Local AI (no provider API key)
 
-## Setup
+- KRUSHY can run Llama 3.2 1B and Gemma 3 1B directly in a compatible browser using [WebLLM](https://github.com/mlc-ai/web-llm).
+- The first use downloads model weights to the browser cache. Keep the tab open and use Wi-Fi.
+- Local inference requires WebGPU and enough free device memory/storage. The selected model weights are approximately 879 MB (Llama) and 711 MB (Gemma); actual runtime memory use is higher.
+- Model weights are not hosted by Vercel and are not bundled into the deployment.
+- Local model chat is text-only in this integration. Image understanding and the existing remote specialist slots still require a separately configured compatible gateway.
+- A browser without WebGPU will show a clear compatibility error; the app does not silently send local prompts to a remote provider.
+
+## Optional remote gateway
+
+The original server-side model gateway remains available for other specialist models. To use it, configure `KRUSHY_MODEL_BASE_URL`, optional `KRUSHY_MODEL_API_KEY`, and `KRUSHY_MODEL_MAP` in your environment. Local Llama and Gemma do not use these settings.
+
+## Development
+
 1. Install dependencies: `npm install`
-2. Copy `.env.example` to `.env.local`.
-3. Configure `KRUSHY_MODEL_BASE_URL`, optional `KRUSHY_MODEL_API_KEY`, and `KRUSHY_MODEL_MAP` for the models you actually host.
-4. Run `npm run dev`.
+2. Run: `npm run dev`
 
-## Plans
+## Limitations
 
-See [plans and limits](docs/PLANS_AND_LIMITS.md). The app currently gates model tiers server-side, but the 20-message account quota is not active until authentication and persistent usage storage are configured.
-
-## Model gateway
-The app sends OpenAI-compatible `/chat/completions` requests to the configured gateway. The model IDs in `lib/model-catalog.ts` are stable KRUSHY IDs; map each one to a real model identifier served by your gateway. Do not assume a GitHub repository URL is itself an inference endpoint.
-
-Provider access, model IDs, prices and free quotas change. A model may require paid credits even if its name appears in the catalogue. The free tier is not unlimited.
-
-## Agent architecture
-- Shared task behaviour lives in `lib/agent-core.ts` and is injected into both chat and coding requests.
-- Tool integration design and deployment boundaries are documented in `docs/AGENT_ARCHITECTURE.md`.
-- Code-rendered video creation workflow is documented in `docs/VIDEO_AGENT.md`.
-- Gemini provider research and secure integration guidance are documented in `docs/GEMINI_PROVIDER_RESEARCH.md`.
-- The current app does not yet ship autonomous repository editing, shell execution, web search, browser automation, remote desktop control, hosted real-time voice, document parsing, database-backed accounts, billing, or subscription enforcement. These require separate secure integrations and configuration.
-- The current browser speech controls use device/browser APIs; they are not a hosted speech-to-speech service.
+The current preview's daily message counter is browser-local and is not secure account-wide enforcement. Authentication, persistent usage limits, billing, and subscription enforcement are not implemented. Local inference speed and compatibility depend on the visitor's device and browser. The browser voice controls use device speech APIs; they are not a hosted speech-to-speech service.
 
 ## Security
-- Keep API keys out of client code, commits, screenshots and chat messages.
-- Store credentials in Vercel environment variables or a dedicated secret manager.
-- Run code execution and browser automation in isolated worker services, never directly in the Next.js web process.
 
-
-## Provider setup
-
-See [provider integration and live model verification](docs/PROVIDER_INTEGRATION.md) for the gateway setup, secret handling, and smoke-test command. The 10-slot target is documented in [10_MODEL_LINEUP.md](docs/10_MODEL_LINEUP.md).
+- Never put API keys in client code or commit them.
+- Keep any optional gateway credentials server-side.
+- Do not treat model names or system prompts as proof of premium-model equivalence.
