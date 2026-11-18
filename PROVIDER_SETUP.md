@@ -56,7 +56,7 @@ Required Vercel variables:
 | --- | --- |
 | `MONERIS_MERCHANT_ID` | 13-character merchant ID |
 | `MONERIS_API_KEY` | Server-only Moneris API key |
-| `MONERIS_API_BASE_URL` | `https://api.sb.moneris.io` for QA/testing |
+| `MONERIS_API_BASE_URL` | `https://api.sb.moneris.io` for QA/testing; `https://api.moneris.io` for production |
 | `MONERIS_API_VERSION` | Current Moneris API version used by the endpoint |
 | `MONERIS_CALLBACK_URL` | `https://krushy-ai.vercel.app/api/pro/webhook/moneris` |
 | `MONERIS_WEBHOOK_SECRET` | Optional secret checked by the KRUSHY webhook |
@@ -79,7 +79,7 @@ The KRUSHY UI sends `tokenize` to the iframe and accepts messages only from the 
 After QA testing and store activation, switch:
 
 - `NEXT_PUBLIC_MONERIS_ENV=production`
-- `MONERIS_API_BASE_URL=https://api.moneris.io` (use the production base URL supplied by your Moneris account/docs)
+- `MONERIS_API_BASE_URL=https://api.moneris.io`
 - production Hosted Tokenization profile ID
 - production merchant credentials
 
