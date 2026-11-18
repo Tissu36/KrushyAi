@@ -15,25 +15,35 @@ export const MODEL_CATALOG: ModelEntry[] = [
   { id:"slot-7-vision", plan:"free", name:"Gemini 3.8 Flash", maker:"Google", task:"Long-horizon coding, autonomous workflows and multimodal tasks", category:"both", github:"https://ai.google.dev/gemini-api/docs/models", modelId:"gemini-3.8-flash", fallbackModelIds:[], note:"FREE PLAN · Free-tier availability depends on Google API limits and region; paid usage may apply.", promptSources:[], promptSourceModels:["Gemini 3.8 Flash"], systemPrompt:"You are the Gemini 3.8 Flash profile in KRUSHYAI. Focus on fast but capable coding, autonomous workflows and multimodal reasoning where the endpoint supports it. Be explicit about tool and image limitations." },
   { id:"slot-8-agents", plan:"pro", name:"DeepSeek V4 Pro", maker:"DeepSeek", task:"High-value advanced reasoning and demanding technical coding", category:"both", github:"https://api-docs.deepseek.com/api/list-models/", modelId:"deepseek-v4-pro", fallbackModelIds:[], note:"PRO · API usage billed by DeepSeek; pricing varies by peak/off-peak schedule.", promptSources:[], promptSourceModels:["DeepSeek V4 Pro"], systemPrompt:"You are the DeepSeek V4 Pro profile in KRUSHYAI. Focus on hard technical reasoning, complex coding, math and long multi-step tasks. Do not claim access to tools not supplied by the runtime." },
   { id:"slot-9-math-science", plan:"free", name:"DeepSeek V4.1 Flash", maker:"DeepSeek", task:"Fast, cost-efficient coding and general agent workflows", category:"both", github:"https://api-docs.deepseek.com/api/list-models/", modelId:"deepseek-flash", fallbackModelIds:[], note:"FREE PLAN · Low-cost paid API; free usage is not guaranteed.", promptSources:[], promptSourceModels:["DeepSeek V4.1 Flash"], systemPrompt:"You are the DeepSeek V4.1 Flash profile in KRUSHYAI. Optimize for efficient coding, fast answers, tool-oriented plans and concise technical reasoning." },
-  { id:"slot-10-backup", plan:"pro", name:"Kimi K3.1 Pro", maker:"Moonshot AI", task:"Long-context codebase analysis and agentic engineering", category:"both", github:"https://platform.moonshot.ai/docs", modelId:"kimi-k3.1-pro", fallbackModelIds:[], note:"PRO · Provider availability and API pricing must be confirmed for your chosen gateway.", promptSources:[], promptSourceModels:["Kimi K3.1 Pro"], systemPrompt:"You are the Kimi K3.1 Pro profile in KRUSHYAI. Focus on long-context repository analysis, planning and code generation. Actual context and capabilities depend on the connected endpoint." }
+  { id:"slot-10-backup", plan:"pro", name:"Gemini 4 Carbon", maker:"Google", task:"Frontier multimodal reasoning and advanced engineering", category:"both", github:"https://ai.google.dev/gemini-api/docs/models", modelId:"gemini-4-carbon", fallbackModelIds:[], note:"PRO · Paid API tier; pricing depends on token and context tier. Provider billing applies.", promptSources:[], promptSourceModels:["Gemini 4 Carbon"], systemPrompt:"You are the Gemini 4 Carbon profile in KRUSHYAI. Focus on frontier-level multimodal reasoning, complex software engineering and difficult real-world tasks. Only process images if the configured endpoint supports image input." }
 ];
 
 export function getConfiguredModelMap(): Record<string, string> {
   const base = process.env.KRUSHY_MODEL_BASE_URL || "";
   if (!base) return {};
   if (base.includes("openrouter.ai") && !process.env.KRUSHY_MODEL_API_KEY) return {};
+  const providerPrefix: Record<string, string> = {
+    Anthropic: "anthropic",
+    OpenAI: "openai",
+    Google: "google",
+    DeepSeek: "deepseek",
+  };
+  const result: Record<string, string> = {};
+  for (const model of MODEL_CATALOG) {
+    const prefix = providerPrefix[model.maker];
+    result[model.id] = base.includes("openrouter.ai") && prefix
+      ? `${prefix}/${model.modelId}`
+      : model.modelId;
+  }
   try {
     const parsed = JSON.parse(process.env.KRUSHY_MODEL_MAP || "{}");
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    const allowed = new Map(MODEL_CATALOG.map((m) => [m.id, m.modelId]));
-    const result: Record<string, string> = {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return result;
+    const allowed = new Set(MODEL_CATALOG.map((m) => m.id));
     for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (!allowed.has(key)) continue;
-      if (typeof value === "string" && value.trim()) result[key] = value.trim();
-      else if (typeof value !== "string" && allowed.get(key)) result[key] = allowed.get(key)!;
+      if (allowed.has(key) && typeof value === "string" && value.trim()) result[key] = value.trim();
     }
-    return result;
   } catch {
-    return Object.fromEntries(MODEL_CATALOG.filter((m) => m.modelId).map((m) => [m.id, m.modelId]));
+    // Keep the verified catalog defaults if the optional override is malformed.
   }
+  return result;
 }
