@@ -5,7 +5,39 @@ import { buildAgentInstructions } from "@/lib/agent-core";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+type MessageContent = string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }>;
+type ChatMessage = { role: "system" | "user" | "assistant"; content: MessageContent };
+const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_TOTAL_IMAGE_BYTES = 4 * 1024 * 1024;
+const IMAGE_SLOTS = new Set(["slot-3-multimodal", "slot-7-vision"]);
+
+function validateMessages(input: unknown): { messages: ChatMessage[]; hasImages: boolean } | null {
+  if (!Array.isArray(input) || !input.length) return null;
+  const messages: ChatMessage[] = [];
+  let totalImageBytes = 0;
+  let hasImages = false;
+  for (const raw of input.slice(-24)) {
+    if (!raw || !["user", "assistant"].includes(raw.role) || typeof raw.content !== "string" && !Array.isArray(raw.content)) return null;
+    if (typeof raw.content === "string") { messages.push({ role: raw.role, content: raw.content }); continue; }
+    if (raw.role !== "user" || !raw.content.length || raw.content.length > 5) return null;
+    const parts: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> = [];
+    for (const part of raw.content) {
+      if (part?.type === "text" && typeof part.text === "string") { parts.push({ type: "text", text: part.text.slice(0, 12000) }); continue; }
+      if (part?.type !== "image_url" || typeof part.image_url?.url !== "string") return null;
+      const match = part.image_url.url.match(/^data:(image\\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/]+=*)$/);
+      if (!match || !IMAGE_MIME_TYPES.has(match[1])) return null;
+      const estimatedBytes = Math.floor(match[2].length * 3 / 4);
+      if (estimatedBytes <= 0 || estimatedBytes > MAX_IMAGE_BYTES) return null;
+      totalImageBytes += estimatedBytes;
+      if (totalImageBytes > MAX_TOTAL_IMAGE_BYTES) return null;
+      hasImages = true;
+      parts.push({ type: "image_url", image_url: { url: part.image_url.url } });
+    }
+    messages.push({ role: raw.role, content: parts });
+  }
+  return { messages, hasImages };
+}
 type CompletionResult = { value: Response | string; modelUsed: string; fallbackAttempted: boolean };
 
 class UpstreamError extends Error {
@@ -197,11 +229,11 @@ export async function POST(req: NextRequest) {
     const selected = typeof body.model === "string" ? body.model : "krushy-max";
     const category = body.mode === "code" ? "code" : "chat";
     const entry = MODEL_CATALOG.find((m) => m.id === selected && m.category === category);
-    if (selected !== "krushy-max" && !entry) return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
+    if (selected !== "krushy-max" && !entry) return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });\n    if (hasImages && selected !== "krushy-max" && !IMAGE_SLOTS.has(selected)) return Response.json({ error: "Image input is available on KRUSHY Multimodal (Slot 3), KRUSHY Vision (Slot 7), or KRUSHY MAX. Switch to a vision-capable slot and retry." }, { status: 400 });
 
     if (selected === "krushy-max") {
-      const candidates = MODEL_CATALOG.filter((m) => m.category === category && map[m.id]).slice(0, 5);
-      if (candidates.length < 2) return Response.json({ error: `KRUSHY MAX needs at least two configured ${category} models. Add model IDs to KRUSHY_MODEL_MAP in Vercel.` }, { status: 503 });
+      const eligible = MODEL_CATALOG.filter((m) => m.category === category && map[m.id]);\n      const candidates = (hasImages ? eligible.filter((m) => IMAGE_SLOTS.has(m.id)) : eligible).slice(0, 5);
+      if (candidates.length < (hasImages ? 1 : 2)) return Response.json({ error: hasImages ? "KRUSHY MAX needs at least one configured vision-capable model (Slot 3 or Slot 7) to process images." : `KRUSHY MAX needs at least two configured ${category} models. Add model IDs to KRUSHY_MODEL_MAP in Vercel.` }, { status: 503 });
 
       const userPrompt = messages[messages.length - 1].content;
       const previous = messages.slice(0, -1);
