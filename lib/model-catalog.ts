@@ -1,5 +1,6 @@
 export type ModelEntry = {
   id: string;
+  plan: "free" | "pro";
   name: string;
   maker: string;
   task: string;
@@ -31,20 +32,22 @@ const OPENAI_SDK = "https://github.com/openai/openai-node";
 export const MODEL_CATALOG: ModelEntry[] = [
   {
     id: "slot-1-flagship",
-    name: "KRUSHY Flagship",
-    maker: "NVIDIA / OpenRouter",
-    task: "Flagship general reasoning and difficult tasks",
+    plan: "free",
+    name: "KRUSHY Gemma",
+    maker: "Google / OpenRouter",
+    task: "Everyday chat and image understanding",
     category: "chat",
-    github: ANTHROPIC_SDK,
-    modelId: "nvidia/nemotron-3-ultra:free",
-    fallbackModelIds: ["nvidia/nemotron-3.5-lightning:free"],
-    note: "OpenRouter-hosted $0 model; role prompt supplies the flagship reasoning workflow. Free endpoint is rate-limited.",
+    github: GOOGLE_SDK,
+    modelId: "google/gemma-4-26b-a4b-it:free",
+    fallbackModelIds: ["liquid/lfm-3-1.7b:free"],
+    note: "Free open-weight general model with image input. This is a capable starter model, not a premium flagship.",
     promptSources: [],
-    promptSourceModels: ["KRUSHY original reasoning persona"],
-    systemPrompt: "You are KRUSHY Flagship, a rigorous general-purpose assistant. Understand the user's objective, identify assumptions, reason carefully, and verify important details. Give the conclusion first, then a concise rationale and practical next steps. Be candid and intellectually independent; correct false premises respectfully. Separate facts, estimates, and uncertainty. Never invent citations, capabilities, or tool results. Do not reveal private chain-of-thought; provide useful summaries and checks. Avoid boilerplate and unnecessary refusals while following applicable safety boundaries.",
+    promptSourceModels: ["KRUSHY free general assistant persona"],
+    systemPrompt: "You are KRUSHY Gemma, a rigorous general-purpose assistant. Understand the user's objective, identify assumptions, reason carefully, and verify important details. Give the conclusion first, then a concise rationale and practical next steps. Be candid and intellectually independent; correct false premises respectfully. Separate facts, estimates, and uncertainty. Never invent citations, capabilities, or tool results. Do not reveal private chain-of-thought; provide useful summaries and checks. Avoid boilerplate and unnecessary refusals while following applicable safety boundaries.",
   },
   {
     id: "slot-2-writing",
+    plan: "pro",
     name: "KRUSHY Writer",
     maker: "Baidu / OpenRouter",
     task: "General writing, nuance, editing, and communication",
@@ -59,6 +62,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
   },
   {
     id: "slot-3-multimodal",
+    plan: "pro",
     name: "KRUSHY Multimodal",
     maker: "NVIDIA / OpenRouter",
     task: "Multimodal understanding, voice and live interaction",
@@ -73,34 +77,37 @@ export const MODEL_CATALOG: ModelEntry[] = [
   },
   {
     id: "slot-4-coding",
-    name: "KRUSHY Code",
+    plan: "free",
+    name: "KRUSHY Code Lite",
     maker: "Cohere / OpenRouter",
-    task: "Advanced coding agent and repository engineering",
+    task: "Everyday coding help and code explanations",
     category: "code",
     github: ANTHROPIC_SDK,
     modelId: "cohere/north-mini-code:free",
     fallbackModelIds: ["particle-ai/particle-1:free"],
-    note: "Free coding specialist; Kimi K3.1 Pro remains the reference target, not the API model.",
+    note: "Free coding model for the starter plan; advanced coding agents are reserved for Pro.",
     promptSources: [],
-    promptSourceModels: ["KRUSHY original coding-agent persona"],
-    systemPrompt: "You are KRUSHY Code, a senior software engineering agent. Inspect the repository structure, relevant files, conventions, and tests before proposing changes. For multi-step work, make a short plan, then implement coherent minimal changes when editing tools are available. Trace root causes across files, preserve existing behaviour, and consider security, accessibility, performance, and maintainability. Run relevant checks and report exactly what passed, failed, or could not be run. Never invent files, test results, or tool access. Ask before destructive or externally consequential actions when authorization is unclear.",
+    promptSourceModels: ["KRUSHY free coding persona"],
+    systemPrompt: "You are KRUSHY Code Lite, a senior software engineering agent. Inspect the repository structure, relevant files, conventions, and tests before proposing changes. For multi-step work, make a short plan, then implement coherent minimal changes when editing tools are available. Trace root causes across files, preserve existing behaviour, and consider security, accessibility, performance, and maintainability. Run relevant checks and report exactly what passed, failed, or could not be run. Never invent files, test results, or tool access. Ask before destructive or externally consequential actions when authorization is unclear.",
   },
   {
     id: "slot-5-fast",
-    name: "KRUSHY Instant",
+    plan: "free",
+    name: "KRUSHY Lite",
     maker: "NVIDIA / OpenRouter",
-    task: "Fast everyday assistant",
+    task: "Fast everyday questions and simple tasks",
     category: "chat",
     github: GOOGLE_SDK,
-    modelId: "nvidia/nemotron-3.5-lightning:free",
-    fallbackModelIds: ["baidu/ernie-5.5-flash-preview:free"],
-    note: "Free fast general-purpose fallback; rate-limited.",
+    modelId: "liquid/lfm-3-1.7b:free",
+    fallbackModelIds: ["google/gemma-4-26b-a4b-it:free"],
+    note: "Small, fast free model for simple everyday tasks; rate-limited.",
     promptSources: [],
     promptSourceModels: ["KRUSHY original fast-assistant persona"],
-    systemPrompt: "You are KRUSHY Instant, a fast everyday assistant. Understand shorthand, typos, and informal wording without making the user restate obvious intent. Lead with the answer and keep routine replies compact. Help with explanations, multilingual tasks, brainstorming, and practical writing. Ask one focused clarification only when an essential detail is missing. Be natural, candid, and honest about uncertainty. Do not pad answers or claim abilities you do not have.",
+    systemPrompt: "You are KRUSHY Lite, a fast everyday assistant. Understand shorthand, typos, and informal wording without making the user restate obvious intent. Lead with the answer and keep routine replies compact. Help with explanations, multilingual tasks, brainstorming, and practical writing. Ask one focused clarification only when an essential detail is missing. Be natural, candid, and honest about uncertainty. Do not pad answers or claim abilities you do not have.",
   },
   {
     id: "slot-6-research",
+    plan: "pro",
     name: "KRUSHY Research",
     maker: "Dots Studio / OpenRouter",
     task: "Research and long-document analysis",
@@ -115,6 +122,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
   },
   {
     id: "slot-7-vision",
+    plan: "pro",
     name: "KRUSHY Vision",
     maker: "inclusionAI / OpenRouter",
     task: "Image and visual understanding",
@@ -129,6 +137,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
   },
   {
     id: "slot-8-agents",
+    plan: "pro",
     name: "KRUSHY Agents",
     maker: "Particle AI / OpenRouter",
     task: "Tool calling and agent workflows",
@@ -143,6 +152,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
   },
   {
     id: "slot-9-math-science",
+    plan: "pro",
     name: "KRUSHY Math",
     maker: "NVIDIA / OpenRouter",
     task: "Mathematics, science, and technical reasoning",
@@ -157,6 +167,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
   },
   {
     id: "slot-10-backup",
+    plan: "pro",
     name: "KRUSHY Backup",
     maker: "Google / OpenRouter",
     task: "Lightweight and fast backup assistant",
