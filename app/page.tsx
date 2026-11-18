@@ -51,14 +51,14 @@ export default function Home() {
       <button className="new-chat" onClick={fresh}><span>＋</span> New chat</button>
       <div className="side-label">WORKSPACE</div>
       <button className={mode==="chat"?"nav active":"nav"} onClick={()=>changeMode("chat")}><span>◉</span> AI Chat</button>
-      <button className={mode==="code"?"nav active":"nav"} onClick={()=>changeMode("code")}><span>⌘</span> Code Studio <em>PRO</em></button>
+      <button className={mode==="code"?"nav active":"nav"} onClick={()=>changeMode("code")}><span>⌘</span> KRUSHY CODE <em>PRO</em></button>
       <button className="nav" onClick={()=>setError("Voice mode: use the microphone beside the message box to talk, then tap the speaker on an answer.")}><span>◖</span> Voice chat</button>
       <div className="side-label history-label">RECENT CHATS</div>
       <div className="history">{history.map((h,i)=><button key={i} onClick={()=>{setInput(h);setSidebar(false)}}>◦ <span>{h}</span></button>)}</div>
       <div className="side-bottom"><div className="profile"><div className="avatar">K</div><div><b>KRUSHY</b><small>Personal workspace</small></div><span className="online-dot"/></div><div className="powered">KRUSHY MODEL FAMILY</div></div>
     </aside>
     <section className="main">
-      <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"Code Studio":"AI Chat"}</b></div><div className="top-right"><span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
+      <header className="topbar"><button className="menu-btn" onClick={()=>setSidebar(!sidebar)}>☰</button><div className="crumb">Workspace <span>/</span> <b>{mode==="code"?"KRUSHY CODE":"AI Chat"}</b></div><div className="top-right"><span className="status-dot"/> <span className="status-text">SYSTEM ONLINE</span><button className="icon-btn" onClick={fresh} title="New chat">＋</button></div></header>
       <div className="content">
         <div className="hero-kicker"><span/> KRUSHY Ω · MODEL LAB <span className="line"/></div>
         <select className="mobile-model" value={model} onChange={e=>setModel(e.target.value)} aria-label="Choose AI model">{activeModels.map(m=><option key={m.id} value={m.id} disabled={!m.configured}>{m.name} — {m.configured?"Connected":"Not connected"}</option>)}</select>
