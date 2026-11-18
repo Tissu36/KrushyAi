@@ -10,7 +10,7 @@ type ChatMessage = { role: "system" | "user" | "assistant"; content: MessageCont
 const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const MAX_TOTAL_IMAGE_BYTES = 3 * 1024 * 1024;
-const IMAGE_SLOTS = new Set(["slot-3-multimodal", "slot-7-vision"]);
+const IMAGE_SLOTS = new Set(["slot-1-flagship", "slot-3-multimodal", "slot-7-vision"]);
 
 function validateMessages(input: unknown): { messages: ChatMessage[]; hasImages: boolean } | null {
   if (!Array.isArray(input) || !input.length) return null;
@@ -236,6 +236,9 @@ export async function POST(req: NextRequest) {
     const category = requestBody.mode === "code" ? "code" : "chat";
     const entry = MODEL_CATALOG.find((model) => model.id === selected && model.category === category);
 
+    if (selected === "krushy-max" || entry?.plan === "pro") {
+      return Response.json({ error: "This is a KRUSHY PRO model. Pro access is not enabled for this account yet." }, { status: 403 });
+    }
     if (selected !== "krushy-max" && !entry) {
       return Response.json({ error: "That model is not available in this workspace mode." }, { status: 400 });
     }
