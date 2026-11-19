@@ -35,7 +35,12 @@ export function getConfiguredModelMap(): Record<string, string> {
   const result: Record<string, string> = {};
   for (const model of MODEL_CATALOG) {
     const prefix = providerPrefix[model.maker];
-    result[model.id] = prefix ? `${prefix}/${model.modelId}` : model.modelId;
+    // Catalog entries already use canonical OpenRouter slugs such as
+    // `deepseek/deepseek-v4.1-flash-1017`. Never prefix a slug that
+    // already contains its provider namespace.
+    result[model.id] = prefix && !model.modelId.includes("/")
+      ? `${prefix}/${model.modelId}`
+      : model.modelId;
   }
   try {
     const parsed = JSON.parse(process.env.KRUSHY_MODEL_MAP || "{}");
